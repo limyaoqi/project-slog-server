@@ -1,0 +1,84 @@
+1. friend if already isFriend show
+
+2. login and logout have problem cannot logout immedialy
+
+// updateProfileRoute.js
+router.put('/profile', authMiddleware, async (req, res) => {
+  try {
+    const { fullname, email } = req.body;
+    const userId = req.user._id;
+
+    // Update user profile information in the database
+    await User.findByIdAndUpdate(userId, { fullname, email });
+
+    res.json({ msg: 'Profile updated successfully' });
+  } catch (err) {
+    res.status(500).json({ msg: 'Server Error' });
+  }
+});
+
+// userProfileRoute.js
+router.get('/:userId/profile', async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const user = await User.findById(userId).select('-password'); // Exclude password from the response
+    if (!user) return res.status(404).json({ msg: 'User not found' });
+
+    res.json(user);
+  } catch (err) {
+    res.status(500).json({ msg: 'Server Error' });
+  }
+});
+
+// Client-side (e.g., in your client application)
+setInterval(() => {
+    // Send a heartbeat signal to the server
+    fetch('/heartbeat', { method: 'POST' });
+}, 30000); // Send signal every 30 seconds
+
+// Server-side (e.g., in your Express app)
+app.post('/heartbeat', (req, res) => {
+    // Update user's online status in the database
+    // For example, using Mongoose:
+    User.findByIdAndUpdate(req.user._id, { isOnline: true })
+        .then(() => {
+            res.sendStatus(200);
+        })
+        .catch(err => {
+            console.error('Error updating online status:', err);
+            res.sendStatus(500);
+        });
+});
+
+
+Posts:
+    Create a new post
+    Get all posts
+    Get a single post by ID
+    Update a post
+    Delete a post
+Comments:
+    Create a new comment on a post
+    Update a comment
+    Delete a comment
+Users:
+    Register a new user
+    Login/logout a user
+    Update user profile
+    Delete user account
+Categories/Tags:
+    Get all categories/tags
+    Get posts by category/tag
+Likes:
+    Like/unlike a post
+    Like/unlike a comment
+Followers/Following:
+    Follow/unfollow a user
+    Get followers/following list for a user
+Search:
+    Search posts by keyword
+    Search users by username
+Miscellaneous:
+    Reset password
+    Get user activity feed
+    Get trending posts
