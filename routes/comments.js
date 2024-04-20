@@ -1,24 +1,40 @@
 const express = require("express");
 const router = express.Router();
 const Comment = require("../models/Comment");
+const Notification = require("../models/Notification");
 const Post = require("../models/Post");
 const auth = require("../middleware/auth");
 
-//localhost:1717/comments/postId
+//localhost:2000/comments/postId
 router.post("/:id", auth, async (req, res) => {
   try {
     let post = await Post.findById(req.params.id);
     if (!post) {
       return res.json({ msg: "Post not found" });
     }
+
+    //find the comment user is same with the post owner
+    let commentOwner = req.user._id;
+    let postOwner = post.user;
+
     let comment = await Comment.create({
       content: req.body.content,
       post: req.params.id,
       user: req.user._id,
     });
-
     post.comments.push({ comment: comment._id });
     await post.save();
+
+    if (commentOwner.toString() !== postOwner.toString()) {
+      // Send notification to the post owner
+      await Notification.create({
+        type: "comment",
+        content: `User ${req.user.username} commented on your post.`,
+        recipient: postOwner,
+        postId: post._id,
+      });
+    }
+
     return res.json({ comment, msg: "Comment added successfully" });
   } catch (e) {
     return res.status(400).json({

@@ -16,7 +16,17 @@ admin acc
   "password": "securepassword"
   "email": "johndoe@example.com",
 }
+
+{
+  "fullname": "John 2",
+  "username": "johndoe2",
+  "password": "securepassword",
+  "email": "johndoe2@example.com"
+}
 */
+router.get("/", async (req, res) => {
+  res.send("hello world");
+});
 
 router.post("/login", async (req, res) => {
   try {

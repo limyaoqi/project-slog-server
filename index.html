@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WebSocket Client</title>
+    <!-- Include Socket.io client library -->
+    <script src="https://cdn.socket.io/4.3.1/socket.io.js"></script>
+  </head>
+  <body>
+    <h1>WebSocket Client</h1>
+
+    <button onclick="sendMessage()">Send</button>
+
+    <script>
+      // Connect to Socket.io server
+      const socket = io("http://localhost:2000");
+
+      // Log a message when the connection is established
+      socket.on("connect", () => {
+        console.log("Connected to Socket.io server");
+      });
+
+      // Log received messages
+      socket.on("message", (message) => {
+        console.log("Received message:", message);
+      });
+
+      // Function to send a message
+      const sendMessage = () => {
+        const message = "Hello from Client 1";
+        socket.emit("message", message);
+      };
+    </script>
+  </body>
+</html>

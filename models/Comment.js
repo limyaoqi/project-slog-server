@@ -10,6 +10,7 @@ const CommentSchema = new mongoose.Schema(
     replies: [{ type: mongoose.Schema.Types.ObjectId, ref: "Comment" }],
     //the user who reply the user that reply this comment
     parent_comment: { type: mongoose.Schema.Types.ObjectId, ref: "Comment" },
+    deleted: { type: Boolean, default: false } 
   },
   { timestamps: true }
 );
