@@ -7,24 +7,6 @@ const UserSchema = new mongoose.Schema({
   password: { type: String },
   isAdmin: { type: Boolean, default: false },
   isOnline: { type: Boolean, default: false },
-  followers: [
-    {
-      follower: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-      },
-      _id: false,
-    },
-  ],
-  followings: [
-    {
-      following: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-      },
-      _id: false,
-    },
-  ],
   friendsCount: { type: Number, default: 0 },
   lastActive: { type: Date },
 });

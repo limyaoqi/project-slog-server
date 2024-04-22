@@ -16,7 +16,7 @@ admin acc
   "password": "securepassword"
   "email": "johndoe@example.com",
 }
-
+user acc
 {
   "fullname": "John 2",
   "username": "johndoe2",

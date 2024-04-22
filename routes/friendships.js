@@ -3,56 +3,36 @@ const router = express.Router();
 const Friendship = require("../models/Friendship");
 const User = require("../models/User");
 const auth = require("../middleware/auth");
+const path = require("path"); //allows you to change directors
 
-// Send friend request
-// router.post("/request/:userId", auth, async (req, res) => {
-//   try {
-//     const senderId = req.user._id;
-//     const receiverId = req.params.userId;
+//get all the request
+router.get("/request", async (req, res) => {
+  const request = await Friendship.find()
+    .populate({
+      path: "user1",
+      select: "-password",
+    })
+    .populate({
+      path: "user2",
+      select: "-password",
+    });
+  res.json({ request });
+});
 
-//     // Cannot send request to yourself
-//     if (senderId.toString() === receiverId.toString()) {
-//       return res.status(400).json({ msg: "Cannot send friend request to yourself" });
-//     }
-
-//     // Find from friendshipSchema whether you already is friend or not
-//     const alreadyFriendship = await Friendship.findOne({
-//       $or: [
-//         { user1: senderId, user2: receiverId },
-//         { user1: receiverId, user2: senderId }
-//       ]
-//     });
-//     if (alreadyFriendship) {
-//       return res.status(400).json({ msg: "Friend request already sent or friendship already exists" });
-//     }
-
-//     // So if not friend can send the request
-//     const friendshipRequest = new Friendship({
-//       user1: senderId,
-//       user2: receiverId,
-//       status: 'pending'
-//     });
-//     await friendshipRequest.save();
-
-//     res.json({ msg: "Friend request sent successfully" });
-//   } catch (error) {
-//     console.error(error);
-//     res.status(500).json({ msg: "Server Error" });
-//   }
-// });
-
+//send request to user that want to add
 router.post("/request/:id", auth, async (req, res) => {
   try {
     const sender = req.user._id;
     const receiver = req.params.id;
 
-    //check is yourself
+    //check is it yourself
     if (sender.toString() === receiver.toString()) {
       return res
         .status(400)
         .json({ msg: "Cannot send friend request to yourself" });
     }
 
+    //try to find if you already is friend with him/you already sending request
     const alreadyIsFriend = await Friendship.findOne({
       $or: [
         { user1: sender, user2: receiver },
@@ -69,6 +49,7 @@ router.post("/request/:id", auth, async (req, res) => {
       });
     }
 
+    //send a request
     const friendshipRequest = new Friendship({
       user1: sender,
       user2: receiver,
@@ -100,12 +81,36 @@ router.post("/accept/:friendshipId", auth, async (req, res) => {
     friendship.status = "accepted";
     await friendship.save();
 
-    res.json({ msg: "Friend request accepted successfully" });
+    res.json({friendship, msg: "Friend request accepted successfully" });
   } catch (error) {
     console.error(error);
     res.status(500).json({ msg: "Server Error" });
   }
 });
+
+// router.post("/accept/:id", auth, async (req, res) => {
+//   try {
+//     //find the friendship
+//     const friendshipRequest = Friendship.findOne({
+//       id: req.params.id,
+//       user2: req.user.id,
+//     });
+//     if (!friendshipRequest) {
+//       return res.status(404).json({ msg: "Friendship not found" });
+//     }
+//     console.log(friendshipRequest)
+//     friendshipRequest.status = "accepted";
+//     const friendship = await friendshipRequest.save();
+
+//     res.json({
+//       friendship,
+//       msg: "Friend request accepted successfully",
+//     });
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({ msg: "Server Error" });
+//   }
+// });
 
 // Reject friend request
 router.post("/reject/:friendshipId", auth, async (req, res) => {
