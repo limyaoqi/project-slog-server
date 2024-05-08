@@ -50,13 +50,12 @@ router.delete("/:id", auth, async (req, res) => {
     if (!comment) return res.json({ msg: "Comment not found" });
     if (comment.user != req.user._id)
       return res.status(401).json({ msg: "You do not own this comment" });
-    let post = await Post.findByIdAndUpdate(
-      comment.post,
-      { $pull: { comments: { comment: { _id: req.params.id } } } },
+    let deletedComment = await Comment.findByIdAndUpdate(
+      req.params.id,
+      { deleted: true },
       { new: true }
     );
-    await Comment.findByIdAndDelete(req.params.id);
-    return res.json({ post, msg: "Comment deleted successfully" });
+    return res.json({ deletedComment, msg: "Comment deleted successfully" });
   } catch (e) {
     return res
       .status(400)
@@ -70,18 +69,22 @@ router.put("/:id", auth, async (req, res) => {
     let comment = await Comment.findById(req.params.id);
     if (!comment) return res.json({ msg: "Comment Not Found" });
     if (comment.user._id == req.user._id) {
-      // let updateComment = await Comment.findByIdAndUpdate(
-      //   req.params.id,
-      //   { ...req.body, updated_at: new Date().toISOString() },
-      //   {
-      //     new: true,
-      //   }
-      // );
-      // return res.json({ comment: updateComment, msg: "Comment succesfully updated." });
-      comment.content = content || comment.content;
-      await comment.save();
+      let updateComment = await Comment.findByIdAndUpdate(
+        req.params.id,
+        { ...req.body, updated_at: new Date().toISOString() },
+        {
+          new: true,
+        }
+      );
 
-      return res.json({ comment, msg: "Comment updated successfully" });
+      return res.json({
+        comment: updateComment,
+        msg: "Comment succesfully updated.",
+      });
+      // comment.content = content || comment.content;
+      // await comment.save();
+
+      // return res.json({ comment, msg: "Comment updated successfully" });
     }
   } catch (e) {
     return res.json({

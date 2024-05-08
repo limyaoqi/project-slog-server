@@ -57,10 +57,12 @@ mongoose
 // Middleware and routes for Express app
 app.use(express.json());
 app.use("/", require("./routes/users"));
+app.use("/profile", require("./routes/profile"));
 app.use("/post", require("./routes/posts"));
 app.use("/comment", require("./routes/comments"));
 app.use("/like", require("./routes/likes"));
-app.use("/", require("./routes/friendships"));
+app.use("/friendships", require("./routes/friendships"));
+app.use("/notifications", require("./routes/notification"));
 
 // Socket.io connection handling
 io.on("connection", (socket) => {
@@ -74,7 +76,10 @@ io.on("connection", (socket) => {
     console.log("Received message:", message);
 
     // Broadcast the message to all connected clients, including the sender
-    io.emit("message", message);
+    // io.emit("message", message);
+
+    // Broadcast the message to all connected clients, expect the sender
+    socket.broadcast.emit("message", message);
   });
 
   // Handle client disconnection

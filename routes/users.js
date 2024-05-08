@@ -51,9 +51,16 @@ router.post("/login", async (req, res) => {
     let token = jwt.sign({ data: userFound }, SECRET_KEY, { expiresIn: "7d" });
 
     //change the online status to online(true)
-    const onlineUser = await User.findByIdAndUpdate(userFound._id, {
-      isOnline: true,
-    });
+    const onlineUser = await User.findByIdAndUpdate(
+      userFound._id,
+      {
+        isOnline: true,
+        lastActive: new Date(),
+      },
+      {
+        new: true,
+      }
+    );
 
     return res.json({
       token,
@@ -119,9 +126,16 @@ router.post("/register", async (req, res) => {
 
 router.post("/logout", auth, async (req, res) => {
   try {
-    const user = await User.findByIdAndUpdate(req.user._id, {
-      isOnline: false,
-    });
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      {
+        isOnline: false,
+        lastActive: new Date(),
+      },
+      {
+        new: true,
+      }
+    );
 
     return res.json({ user, msg: "Logged out successfully" });
   } catch (e) {

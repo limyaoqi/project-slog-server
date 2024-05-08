@@ -20,7 +20,7 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 //add a new post
-router.post("/", auth, upload.array("attachments", 10), async (req, res) => {
+router.post("/", auth, upload.array("attachments", 9), async (req, res) => {
   try {
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({ error: "No files were uploaded" });
@@ -166,24 +166,8 @@ router.delete("/:id", auth, async (req, res) => {
   }
 });
 
-router.put("/:id", auth, upload.array("attachments", 10), async (req, res) => {
+router.put("/:id", auth, upload.array("attachments", 9), async (req, res) => {
   try {
-    // const postId = req.params.id;
-    // const userId = req.user._id;
-    // // Check if the post exists and the user is the owner
-    // const post = await Post.findOne({ _id: postId, user: userId });
-    // if (!post) {
-    //   return res.status(404).json({ msg: "Post not found or unauthorized" });
-    // }
-    // let updatedPost = await Post.findByIdAndUpdate(
-    //   req.params.id,
-    //   { ...req.body },
-    //   {
-    //     new: true,
-    //   }
-    // );
-    // await post.save();
-    // return res.json({ post: updatedPost, msg: "Post succesfully updated." });
     // Find the post by ID
     const post = await Post.findById(req.params.id);
     if (!post) {

@@ -1,21 +1,27 @@
 const express = require("express");
 const router = express.Router();
 const Friendship = require("../models/Friendship");
-const User = require("../models/User");
 const auth = require("../middleware/auth");
 const path = require("path"); //allows you to change directors
+const Notification = require("../models/Notification");
+
+router.get("/friend", auth, async (req, res) => {
+  const user = req.user._id;
+  const Friends = await Friendship.find({
+    $or: [{ user1: user }, { user2: user }],
+    status: "accepted",
+  });
+
+  res.json({ Friends });
+});
 
 //get all the request
-router.get("/request", async (req, res) => {
-  const request = await Friendship.find()
-    .populate({
-      path: "user1",
-      select: "-password",
-    })
-    .populate({
-      path: "user2",
-      select: "-password",
-    });
+router.get("/request", auth, async (req, res) => {
+  const user = req.user._id;
+  const request = await Friendship.find({
+    $or: [{ user1: user }, { user2: user }],
+    status: "pending",  });
+
   res.json({ request });
 });
 
@@ -56,6 +62,13 @@ router.post("/request/:id", auth, async (req, res) => {
       status: "pending",
     });
     await friendshipRequest.save();
+
+    const notification = new Notification({
+      type: "friend_request",
+      content: `${req.user.fullname} sent you a friend request.`,
+      recipient: receiver,
+    });
+    await notification.save();
     res.json({ friendshipRequest, msg: "Friend request sent successfully" });
   } catch (error) {
     res.status(500).json({ msg: "Server Error" });
@@ -63,67 +76,52 @@ router.post("/request/:id", auth, async (req, res) => {
 });
 
 // Accept friend request
-router.post("/accept/:friendshipId", auth, async (req, res) => {
+router.post("/accept/:id", auth, async (req, res) => {
   try {
     const userId = req.user._id;
-    const friendshipId = req.params.friendshipId;
+    const friendshipId = req.params.id;
 
-    // check from friendshipSchema is that got this request?
-    const friendship = await Friendship.findOne({
+    //find the friendship
+    const friendshipRequest = Friendship.findOne({
       _id: friendshipId,
-      $or: [{ user1: userId }, { user2: userId }],
+      receiver: userId,
     });
-    if (!friendship) {
+
+    if (!friendshipRequest) {
       return res.status(404).json({ msg: "Friendship not found" });
     }
+    friendshipRequest.status = "accepted";
+    const friendship = await friendshipRequest.save();
 
-    // Update friendship status to accepted
-    friendship.status = "accepted";
-    await friendship.save();
+    const notification = new Notification({
+      type: "friend_request_accept",
+      content: `${req.user.fullname} accepted your friend request.`,
+      recipient: friendshipRequest.user1,
+    });
+    await notification.save();
 
-    res.json({friendship, msg: "Friend request accepted successfully" });
+    res.json({
+      friendship,
+      msg: "Friend request accepted successfully",
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ msg: "Server Error" });
   }
 });
 
-// router.post("/accept/:id", auth, async (req, res) => {
-//   try {
-//     //find the friendship
-//     const friendshipRequest = Friendship.findOne({
-//       id: req.params.id,
-//       user2: req.user.id,
-//     });
-//     if (!friendshipRequest) {
-//       return res.status(404).json({ msg: "Friendship not found" });
-//     }
-//     console.log(friendshipRequest)
-//     friendshipRequest.status = "accepted";
-//     const friendship = await friendshipRequest.save();
-
-//     res.json({
-//       friendship,
-//       msg: "Friend request accepted successfully",
-//     });
-//   } catch (error) {
-//     console.error(error);
-//     res.status(500).json({ msg: "Server Error" });
-//   }
-// });
-
 // Reject friend request
-router.post("/reject/:friendshipId", auth, async (req, res) => {
+router.post("/reject/:id", auth, async (req, res) => {
   try {
     const userId = req.user._id;
-    const friendshipId = req.params.friendshipId;
+    const friendshipId = req.params.id;
 
     // Check if friendship exists and user is involved
-    const friendship = await Friendship.findOne({
+    const friendshipRequest = Friendship.findOne({
       _id: friendshipId,
-      $or: [{ user1: userId }, { user2: userId }],
+      receiver: userId,
     });
-    if (!friendship) {
+    if (!friendshipRequest) {
       return res.status(404).json({ msg: "Friendship not found" });
     }
 
@@ -147,6 +145,7 @@ router.post("/unfriend/:friendshipId", auth, async (req, res) => {
     const friendship = await Friendship.findOne({
       _id: friendshipId,
       $or: [{ user1: userId }, { user2: userId }],
+      status: "accepted",
     });
     if (!friendship) {
       return res.status(404).json({ msg: "Friendship not found" });

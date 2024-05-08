@@ -14,6 +14,10 @@ module.exports = (req, res, next) => {
     req.user = decoded.data;
     next();
   } catch (e) {
-    return res.status(401).json({ error: e.message, msg: "Unauthorized" }).redirect("/login");
+    return res
+      .status(401)
+      .json({ error: e.message, msg: "Unauthorized" })
+      .redirect("/login");
   }
 };
+

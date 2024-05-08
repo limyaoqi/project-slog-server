@@ -11,6 +11,8 @@ const ChatSchema = new mongoose.Schema({
   },
   content: { type: String, required: true },
   time: { type: Date, default: Date.now },
+  deletedBy: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+  chatRecord: { type: mongoose.Schema.Types.ObjectId, ref: "ChatRecord" },
 });
 
 module.exports = mongoose.model("Chat", ChatSchema);

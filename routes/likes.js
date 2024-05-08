@@ -5,6 +5,7 @@ const Post = require("../models/Post");
 const auth = require("../middleware/auth");
 
 //localhost:8000/likes/postId
+//like and unlike
 router.post("/:id", auth, async (req, res) => {
   try {
     //find the post using the url id

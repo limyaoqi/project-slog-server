@@ -9,6 +9,7 @@ const UserSchema = new mongoose.Schema({
   isOnline: { type: Boolean, default: false },
   friendsCount: { type: Number, default: 0 },
   lastActive: { type: Date },
+  firstLogin: { type: Boolean, default: true },
 });
 
 module.exports = mongoose.model("User", UserSchema);

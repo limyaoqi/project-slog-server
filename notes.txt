@@ -2,6 +2,8 @@
 
 2. login and logout have problem cannot logout immedialy
 
+3. chat and follow router
+
 // updateProfileRoute.js
 router.put('/profile', authMiddleware, async (req, res) => {
   try {
@@ -82,3 +84,41 @@ Miscellaneous:
     Reset password
     Get user activity feed
     Get trending posts
+
+User Routes:
+User Registration (POST /api/users/register) done
+User Login (POST /api/users/login) done
+User Logout (POST /api/users/logout) done
+Get User Profile (GET /api/users/profile)
+Update User Profile (PUT /api/users/profile)
+Delete User Account (DELETE /api/users/profile)
+
+Post Routes:
+Create Post (POST /api/posts) done //notification
+Get All Posts (GET /api/posts) done
+Get Post by ID (GET /api/posts/:id) done
+Update Post (PUT /api/posts/:id) done
+Delete Post (DELETE /api/posts/:id) done
+
+Comment Routes:
+Create Comment (POST /api/comments) done //notification
+Update Comment (PUT /api/comments/:id) done
+Delete Comment (DELETE /api/comments/:id) done
+
+Like Routes:
+Like and Unlike a Post (POST /api/likes/post/:postId) done //notification
+
+Friendship Routes:
+Send Friend Request (POST /api/friendships/request) done //notification
+Accept/Reject Friend Request (PUT /api/friendships/request/:requestId) done //notification
+Get Friends List (GET /api/friendships)
+Remove Friend (DELETE /api/friendships/:friendId) done
+
+Chat Routes:
+Send Message (POST /api/chats)
+Get Chat History (GET /api/chats/:userId)
+Delete Chat (DELETE /api/chats/:id)
+
+Notification Routes:
+Get Notifications for User (GET /api/notifications)
+Mark Notification as Read (PUT /api/notifications/:id)

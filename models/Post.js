@@ -1,4 +1,4 @@
-const mongoose = require("mongoose")
+const mongoose = require("mongoose");
 
 const PostSchema = new mongoose.Schema(
   {
@@ -41,7 +41,7 @@ const PostSchema = new mongoose.Schema(
       enum: ["draft", "published", "archived"],
       default: "draft",
     },
-  }, 
+  },
   {
     timestamps: true, // Automatically add createdAt and updatedAt timestamps
   }
