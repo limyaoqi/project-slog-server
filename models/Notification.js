@@ -6,6 +6,7 @@ const notificationSchema = new mongoose.Schema({
     enum: [
       "comment",
       "like",
+      "reply",
       "follow",
       "friend_request",
       "friend_request_accept",

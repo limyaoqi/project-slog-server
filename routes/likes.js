@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const Like = require("../models/Like");
 const Post = require("../models/Post");
-const auth = require("../middleware/auth");
+const { auth } = require("../middleware/auth");
 
 //localhost:8000/likes/postId
 //like and unlike

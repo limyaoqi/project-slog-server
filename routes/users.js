@@ -5,7 +5,7 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 require("dotenv").config();
 const { SECRET_KEY } = process.env;
-const auth = require("../middleware/auth");
+const { auth } = require("../middleware/auth");
 
 /*
 example account
@@ -48,7 +48,7 @@ router.post("/login", async (req, res) => {
     userFound = userFound.toObject();
     delete userFound.password;
 
-    let token = jwt.sign({ data: userFound }, SECRET_KEY, { expiresIn: "7d" });
+    let token = jwt.sign({ data: userFound }, SECRET_KEY, { expiresIn: "1d" });
 
     //change the online status to online(true)
     const onlineUser = await User.findByIdAndUpdate(

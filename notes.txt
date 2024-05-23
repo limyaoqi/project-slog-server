@@ -1,36 +1,6 @@
-1. friend if already isFriend show
+1. interest or tag better
+2. like and unlike the comment havent done
 
-2. login and logout have problem cannot logout immedialy
-
-3. chat and follow router
-
-// updateProfileRoute.js
-router.put('/profile', authMiddleware, async (req, res) => {
-  try {
-    const { fullname, email } = req.body;
-    const userId = req.user._id;
-
-    // Update user profile information in the database
-    await User.findByIdAndUpdate(userId, { fullname, email });
-
-    res.json({ msg: 'Profile updated successfully' });
-  } catch (err) {
-    res.status(500).json({ msg: 'Server Error' });
-  }
-});
-
-// userProfileRoute.js
-router.get('/:userId/profile', async (req, res) => {
-  try {
-    const userId = req.params.userId;
-    const user = await User.findById(userId).select('-password'); // Exclude password from the response
-    if (!user) return res.status(404).json({ msg: 'User not found' });
-
-    res.json(user);
-  } catch (err) {
-    res.status(500).json({ msg: 'Server Error' });
-  }
-});
 
 // Client-side (e.g., in your client application)
 setInterval(() => {
@@ -53,30 +23,16 @@ app.post('/heartbeat', (req, res) => {
 });
 
 
-Posts:
-    Create a new post
-    Get all posts
-    Get a single post by ID
-    Update a post
-    Delete a post
-Comments:
-    Create a new comment on a post
-    Update a comment
-    Delete a comment
-Users:
-    Register a new user
-    Login/logout a user
-    Update user profile
-    Delete user account
+
+
+
 Categories/Tags:
-    Get all categories/tags
-    Get posts by category/tag
-Likes:
-    Like/unlike a post
-    Like/unlike a comment
+    Get all categories/tags //done
+    Get posts by category/tag //done
+
 Followers/Following:
-    Follow/unfollow a user
-    Get followers/following list for a user
+    Follow/unfollow a user 
+    Get followers/following list for a user   //done
 Search:
     Search posts by keyword
     Search users by username
@@ -86,39 +42,42 @@ Miscellaneous:
     Get trending posts
 
 User Routes:
-User Registration (POST /api/users/register) done
-User Login (POST /api/users/login) done
-User Logout (POST /api/users/logout) done
-Get User Profile (GET /api/users/profile)
-Update User Profile (PUT /api/users/profile)
-Delete User Account (DELETE /api/users/profile)
+User Registration (POST /url/users/register) done
+User Login (POST /url/users/login) done
+User Logout (POST /url/users/logout) done
+
+User Routes:
+Get User Profile (GET /url/users/profile) done
+Post User Profile (Post /url/users/profile) done
+Update User Profile (PUT /url/users/profile) done
+Delete User Account (DELETE /url/users/profile) not need
 
 Post Routes:
-Create Post (POST /api/posts) done //notification
-Get All Posts (GET /api/posts) done
-Get Post by ID (GET /api/posts/:id) done
-Update Post (PUT /api/posts/:id) done
-Delete Post (DELETE /api/posts/:id) done
+Create Post (POST /url/posts) done //notification
+Get All Posts (GET /url/posts) done
+Get Post by ID (GET /url/posts/:id) done
+Update Post (PUT /url/posts/:id) done
+Delete Post (DELETE /url/posts/:id) done
 
 Comment Routes:
-Create Comment (POST /api/comments) done //notification
-Update Comment (PUT /api/comments/:id) done
-Delete Comment (DELETE /api/comments/:id) done
+Create Comment (POST /url/comments) done //notification
+Update Comment (PUT /url/comments/:id) done
+Delete Comment (DELETE /url/comments/:id) done
 
 Like Routes:
-Like and Unlike a Post (POST /api/likes/post/:postId) done //notification
+Like and Unlike a Post (POST /url/likes/post/:postId) done //notification
 
 Friendship Routes:
-Send Friend Request (POST /api/friendships/request) done //notification
-Accept/Reject Friend Request (PUT /api/friendships/request/:requestId) done //notification
-Get Friends List (GET /api/friendships)
-Remove Friend (DELETE /api/friendships/:friendId) done
+Send Friend Request (POST /url/friendships/request) done //notification
+Accept/Reject Friend Request (PUT /url/friendships/request/:requestId) done //notification
+Get Friends List (GET /url/friendships) done
+Remove Friend (DELETE /url/friendships/:friendId) done
 
 Chat Routes:
-Send Message (POST /api/chats)
-Get Chat History (GET /api/chats/:userId)
-Delete Chat (DELETE /api/chats/:id)
+Send Message (POST /url/chats) done
+Get Chat History (GET /url/chats/:userId) done
+Delete Chat (DELETE /url/chats/:id) done
 
 Notification Routes:
-Get Notifications for User (GET /api/notifications)
-Mark Notification as Read (PUT /api/notifications/:id)
+Get Notifications for User (GET /url/notifications) done
+Mark Notification as Read (PUT /url/notifications/:id) done

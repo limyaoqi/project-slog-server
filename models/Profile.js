@@ -3,24 +3,21 @@ const mongoose = require("mongoose");
 const ProfileSchema = new mongoose.Schema({
   user: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "User", 
+    ref: "User",
     required: true,
-    unique: true, 
+    unique: true,
   },
   bio: {
     type: String,
-    default: "", 
+    default: "",
   },
   location: {
     type: String,
-    default: "", 
+    default: "",
   },
-  website: {
-    type: String,
-    default: "", 
-  },
-  avatar: [String],
-  interests: [String], 
+
+  avatar: { type: String },
+  interests: [{ type: mongoose.Schema.Types.ObjectId, ref: "Tags" }],
 });
 
 module.exports = mongoose.model("Profile", ProfileSchema);

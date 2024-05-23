@@ -4,14 +4,13 @@
 const express = require("express");
 const Notification = require("../models/Notification");
 const router = express.Router();
-const auth = require("../middleware/auth");
-
+const { auth } = require("../middleware/auth");
 
 router.get("/", auth, async (req, res) => {
   try {
     const user = req.user._id;
     const notifications = await Notification.find({ recipient: user });
-    res.json(notifications);
+    return res.json(notifications);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -39,7 +38,7 @@ router.put("/:id", auth, async (req, res) => {
       },
       { new: true }
     );
-    res.json({
+    return res.json({
       notification: updatedNotification,
       message: "Notification marked as read",
     });
@@ -50,3 +49,5 @@ router.put("/:id", auth, async (req, res) => {
     });
   }
 });
+
+module.exports = router;

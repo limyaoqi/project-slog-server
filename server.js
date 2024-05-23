@@ -13,8 +13,8 @@ const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
     origin: "*",
-    methods: ["GET", "POST"]
-  }
+    methods: ["GET", "POST"],
+  },
 });
 // const wss = new WebSocket.Server({ server: server });
 
@@ -59,6 +59,7 @@ app.use(express.json());
 app.use("/", require("./routes/users"));
 app.use("/profile", require("./routes/profile"));
 app.use("/post", require("./routes/posts"));
+app.use("/follow", require("./routes/follows"));
 app.use("/comment", require("./routes/comments"));
 app.use("/like", require("./routes/likes"));
 app.use("/friendships", require("./routes/friendships"));

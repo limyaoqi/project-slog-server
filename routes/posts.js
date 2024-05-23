@@ -2,7 +2,8 @@ const express = require("express");
 const router = express.Router();
 const Post = require("../models/Post");
 const Comment = require("../models/Comment");
-const auth = require("../middleware/auth");
+const Tags = require("../models/Tags");
+const { auth } = require("../middleware/auth");
 const multer = require("multer"); //handle file upload
 const fs = require("fs"); //allows you to read and write on the file system
 const path = require("path"); //allows you to change directors
@@ -13,18 +14,19 @@ const storage = multer.diskStorage({
     cb(null, "./public");
   }, //where to save the images
   filename: (req, file, cb) => {
-    cb(null, Date.now() + "-" + file.originalname);
+    cb(null, Date.now() + "-" + path.extname(file.originalname));
   }, //format the filename before storing it
 });
 
+// Configure Multer
 const upload = multer({ storage });
 
 //add a new post
 router.post("/", auth, upload.array("attachments", 9), async (req, res) => {
   try {
-    if (!req.files || req.files.length === 0) {
-      return res.status(400).json({ error: "No files were uploaded" });
-    }
+    // if (!req.files || req.files.length === 0) {
+    //   return res.status(400).json({ error: "No files were uploaded" });
+    // }
 
     //title must have but less than 100 word
     if (req.body.title.length > 100) {
@@ -41,7 +43,7 @@ router.post("/", auth, upload.array("attachments", 9), async (req, res) => {
       });
     }
 
-    //in default i set to public if the user didnt set but to prevent the visibility is not the thing i set put a error
+    //in default i set to public if the user didnt set but to prevent the visibility is not the thing i set a error2
     if (
       req.body.visibility &&
       !["public", "private"].includes(req.body.visibility)
@@ -49,7 +51,7 @@ router.post("/", auth, upload.array("attachments", 9), async (req, res) => {
       return res.status(400).json({ error: "Invalid visibility value" });
     }
 
-    //in default i set to draft(edit) if the user didnt set but to prevent the visibility is not the thing i set put a error
+    //in default i set to draft(edit) if the user didnt set but to prevent the visibility is not the thing i set a error
     if (
       req.body.status &&
       !["draft", "published", "archived"].includes(req.body.status)
@@ -57,20 +59,35 @@ router.post("/", auth, upload.array("attachments", 9), async (req, res) => {
       return res.status(400).json({ error: "Invalid status value" });
     }
 
-    const tags = JSON.parse(req.body.tags);
+    const tags = req.body.tags;
+    let tagIdArray = [];
+    if (tags && tags.length > 0) {
+      for (let i = 0; i < tags.length; i++) {
+        const tag = await Tags.findOne({ name: tags[i] });
+        if (tag) {
+          tagIdArray.push(tag.id);
+        } else {
+          const newTag = new Tags({
+            name: tags[i],
+          });
+          const tag = await newTag.save();
+          tagIdArray.push(tag.id);
+        }
+      }
+    }
 
     const attachments = req.files.map((file) => file.filename);
 
     const post = new Post({
+      user: req.user._id,
       title: req.body.title,
       description: req.body.description,
       user: req.user._id,
-      tags: tags,
+      tags: tagIdArray.map((tag) => tag),
       attachments: attachments,
       visibility: req.body.visibility || "public",
       status: req.body.status || "draft",
     });
-    post.user = req.user._id;
     await post.save();
     return res.json({ post, msg: "Post added succesfully" });
   } catch (e) {
@@ -92,7 +109,7 @@ router.get("/", async (req, res) => {
     const posts = await Post.find(filter)
       .populate({
         path: "user",
-        select: "-password",
+        select: "fullname,username",
       })
       .populate({
         path: "comments",
@@ -115,7 +132,7 @@ router.get("/:id", async (req, res) => {
     let post = await Post.findById(req.params.id)
       .populate({
         path: "user",
-        select: "-password",
+        select: "fullname username",
       })
       .populate({
         path: "comments",

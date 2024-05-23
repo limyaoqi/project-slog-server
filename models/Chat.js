@@ -11,6 +11,10 @@ const ChatSchema = new mongoose.Schema({
   },
   content: { type: String, required: true },
   time: { type: Date, default: Date.now },
+  read: {
+    type: Boolean,
+    default: false,
+  },
   deletedBy: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
   chatRecord: { type: mongoose.Schema.Types.ObjectId, ref: "ChatRecord" },
 });

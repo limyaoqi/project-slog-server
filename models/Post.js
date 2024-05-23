@@ -29,7 +29,7 @@ const PostSchema = new mongoose.Schema(
         _id: false,
       },
     ],
-    tags: [String],
+    tags: [{ type: mongoose.Schema.Types.ObjectId, ref: "Tags" }],
     attachments: [String],
     visibility: {
       type: String,

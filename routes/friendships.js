@@ -1,28 +1,37 @@
 const express = require("express");
 const router = express.Router();
 const Friendship = require("../models/Friendship");
-const auth = require("../middleware/auth");
+const { auth } = require("../middleware/auth");
 const path = require("path"); //allows you to change directors
 const Notification = require("../models/Notification");
 
 router.get("/friend", auth, async (req, res) => {
-  const user = req.user._id;
-  const Friends = await Friendship.find({
-    $or: [{ user1: user }, { user2: user }],
-    status: "accepted",
-  });
+  try {
+    const user = req.user._id;
+    const Friends = await Friendship.find({
+      $or: [{ user1: user }, { user2: user }],
+      status: "accepted",
+    });
 
-  res.json({ Friends });
+    return res.json({ Friends });
+  } catch (error) {
+    return res.status(500).json({ msg: "Server Error" });
+  }
 });
 
 //get all the request
 router.get("/request", auth, async (req, res) => {
-  const user = req.user._id;
-  const request = await Friendship.find({
-    $or: [{ user1: user }, { user2: user }],
-    status: "pending",  });
+  try {
+    const user = req.user._id;
+    const request = await Friendship.find({
+      $or: [{ user1: user }, { user2: user }],
+      status: "pending",
+    });
 
-  res.json({ request });
+    return res.json({ request });
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
 });
 
 //send request to user that want to add
@@ -69,9 +78,12 @@ router.post("/request/:id", auth, async (req, res) => {
       recipient: receiver,
     });
     await notification.save();
-    res.json({ friendshipRequest, msg: "Friend request sent successfully" });
+    return res.json({
+      friendshipRequest,
+      msg: "Friend request sent successfully",
+    });
   } catch (error) {
-    res.status(500).json({ msg: "Server Error" });
+    return res.status(500).json({ error: error.message });
   }
 });
 
@@ -100,13 +112,13 @@ router.post("/accept/:id", auth, async (req, res) => {
     });
     await notification.save();
 
-    res.json({
+    return res.json({
       friendship,
       msg: "Friend request accepted successfully",
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ msg: "Server Error" });
+    return res.status(500).json({ error: error.message });
   }
 });
 
@@ -128,10 +140,10 @@ router.post("/reject/:id", auth, async (req, res) => {
     // Delete friendship
     await Friendship.findByIdAndDelete(friendshipId);
 
-    res.json({ msg: "Friend request rejected successfully" });
+    return res.json({ msg: "Friend request rejected successfully" });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ msg: "Server Error" });
+    return res.status(500).json({ error: error.message });
   }
 });
 
@@ -154,10 +166,10 @@ router.post("/unfriend/:friendshipId", auth, async (req, res) => {
     // Delete friendship
     await Friendship.findByIdAndDelete(friendshipId);
 
-    res.json({ msg: "Unfriended successfully" });
+    return res.json({ msg: "Unfriended successfully" });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ msg: "Server Error" });
+    return res.status(500).json({ error: error.message });
   }
 });
 

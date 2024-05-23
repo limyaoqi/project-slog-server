@@ -3,7 +3,8 @@ const router = express.Router();
 const Comment = require("../models/Comment");
 const Notification = require("../models/Notification");
 const Post = require("../models/Post");
-const auth = require("../middleware/auth");
+const { auth } = require("../middleware/auth");
+const Reply = require("../models/Reply");
 
 //localhost:2000/comments/postId
 router.post("/:id", auth, async (req, res) => {
@@ -93,4 +94,50 @@ router.put("/:id", auth, async (req, res) => {
     });
   }
 });
+
+//id is comment id
+router.post("/:postId/:id/reply", auth, async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.postId);
+    if (!post) {
+      return res.status(404).json({ msg: "Post not found" });
+    }
+
+    let comment = await Comment.findById(req.params.id);
+    if (!comment) {
+      return res.json({ msg: "Comment not found" });
+    }
+
+    // The user replying to the comment
+      let replyOwner = req.user._id;
+    let commentOwner = comment.user;
+
+    let reply = await Reply.create({
+      content: req.body.content,
+      user: replyOwner,
+      parent_comment: comment,
+    });
+
+    comment.replies.push(reply._id);
+    await comment.save();
+
+    if (replyOwner.toString() !== commentOwner.toString()) {
+      // Send notification to the post owner
+      await Notification.create({
+        type: "reply",
+        content: `User ${req.user.username} replied your comment.`,
+        recipient: commentOwner,
+        postId: post._id,
+      });
+    }
+
+    return res.json({ reply, msg: "Reply added successfully" });
+  } catch (e) {
+    return res.status(400).json({
+      error: e.message,
+      msg: "Cannot add a comment, Please try again later.",
+    });
+  }
+});
+
 module.exports = router;
