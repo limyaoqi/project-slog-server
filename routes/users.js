@@ -11,14 +11,12 @@ const { auth } = require("../middleware/auth");
 example account
 admin acc
 {
-  "fullname": "John Doe",
   "username": "johndoe123",
   "password": "securepassword"
   "email": "johndoe@example.com",
 }
 user acc
 {
-  "fullname": "John 2",
   "username": "johndoe2",
   "password": "securepassword",
   "email": "johndoe2@example.com"
@@ -31,18 +29,18 @@ router.get("/", async (req, res) => {
 router.post("/login", async (req, res) => {
   try {
     //get the details from the form
-    const { username, password } = req.body;
+    const { email, password } = req.body;
 
     //find is that had the user the same with the details?
-    let userFound = await User.findOne({ username });
+    let userFound = await User.findOne({ email });
     if (!userFound) {
-      return res.json({ msg: "Invalid Credentials", status: 400 });
+      return res.status(400).json({ msg: "Invalid Credentials" });
     }
 
     //compare the userpassword and formpassword is same or not
     let isMatch = bcrypt.compareSync(password, userFound.password);
     if (!isMatch) {
-      return res.json({ msg: "Invalid Credentials", status: 400 });
+      return res.status(400).json({ msg: "Invalid Credentials" });
     }
 
     userFound = userFound.toObject();
@@ -60,7 +58,10 @@ router.post("/login", async (req, res) => {
       {
         new: true,
       }
-    );
+    ).populate({
+      path: "profileId",
+      select: "avatar",
+    });
 
     return res.json({
       token,
@@ -75,7 +76,7 @@ router.post("/login", async (req, res) => {
 router.post("/register", async (req, res) => {
   try {
     //get the data from form
-    const { fullname, username, email, password } = req.body;
+    const { username, email, password } = req.body;
 
     //find whether the username already used or not
     const userFound = await User.findOne({ username });
@@ -90,25 +91,18 @@ router.post("/register", async (req, res) => {
       return res.status(400).json({ msg: "Email has already been registered" });
 
     //check the register details
-    if (fullname.length < 3)
-      return res.json({
-        msg: "Fullname should be atleast 3 characters ",
-        status: 400,
-      });
+
     if (username.length < 8)
-      return res.json({
+      return res.status(400).json({
         msg: "Username should be atleast 8 characters",
-        status: 400,
       });
     if (email.length < 8)
-      return res.json({
+      return res.status(400).json({
         msg: "Email should be atleast 8 characters",
-        status: 400,
       });
     if (password.length < 8)
-      return res.json({
+      return res.status(400).json({
         msg: "Password should be atleast 8 characters",
-        status: 400,
       });
 
     //create new user

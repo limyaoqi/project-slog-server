@@ -61,18 +61,36 @@ router.post("/", auth, upload.array("attachments", 9), async (req, res) => {
 
     const tags = req.body.tags;
     let tagIdArray = [];
-    if (tags && tags.length > 0) {
+
+    // Check if tags is an array
+    if (Array.isArray(tags)) {
+      // Iterate over the tags array
       for (let i = 0; i < tags.length; i++) {
-        const tag = await Tags.findOne({ name: tags[i] });
-        if (tag) {
-          tagIdArray.push(tag.id);
-        } else {
-          const newTag = new Tags({
-            name: tags[i],
-          });
-          const tag = await newTag.save();
-          tagIdArray.push(tag.id);
+        if (tags[i].length > 0) {
+          // Check for non-empty tag name
+          const existingTag = await Tags.findOne({ name: tags[i] });
+          if (existingTag) {
+            tagIdArray.push(existingTag.id);
+          } else {
+            const newTag = new Tags({
+              name: tags[i],
+            });
+            const savedTag = await newTag.save();
+            tagIdArray.push(savedTag.id);
+          }
+          console.log(tags[i]);
         }
+      }
+    } else {
+      const existingTag = await Tags.findOne({ name: tags });
+      if (existingTag) {
+        tagIdArray.push(existingTag.id);
+      } else {
+        const newTag = new Tags({
+          name: tags,
+        });
+        const savedTag = await newTag.save();
+        tagIdArray.push(savedTag.id);
       }
     }
 
@@ -97,28 +115,73 @@ router.post("/", auth, upload.array("attachments", 9), async (req, res) => {
   }
 });
 
-router.get("/", async (req, res) => {
+router.get("/", auth, async (req, res) => {
   try {
-    //this to get all the key from url
+    const page = parseInt(req.query.page) || 1;
+
     const keys = Object.keys(req.query);
     let filter = {};
-    //set the key and the value to filter
     keys.forEach((key) => {
       filter[key] = req.query[key];
     });
+
+    // filter = {
+    //   ...filter,
+    //   visibility: { $ne: "private" }, // Exclude private posts
+    //   status: { $nin: ["draft", "archived"] }, // Exclude draft and archived posts
+    // };
+
     const posts = await Post.find(filter)
       .populate({
         path: "user",
-        select: "fullname,username",
+        select: "username",
+        populate: {
+          path: "profileId",
+          select: "avatar",
+        },
       })
       .populate({
         path: "comments",
         select: "-__v",
+        populate: [
+          {
+            path: "user",
+            select: "username",
+            populate: {
+              path: "profileId",
+              select: "avatar",
+            },
+          },
+          {
+            path: "replies",
+            select: "-__v",
+            populate: {
+              path: "user",
+              select: "username",
+              populate: {
+                path: "profileId",
+                select: "avatar",
+              },
+            },
+          },
+        ],
       })
       .populate({
-        path: "likes",
+        path: "tags",
+        select: "name",
       });
-    return res.json(posts);
+
+    const filteredDeletedPosts = posts.filter((post) => !post.isDeleted);
+
+    // post.user._id === req.user._id return all the post that post.user._id !== req.user._id && status ==="published" visibility ==="public" and post.user._id === req.user._id
+    const filteredPosts = filteredDeletedPosts.filter((post) => {
+      return (
+        post.user._id.toString() === req.user._id.toString() ||
+        (post.status === "published" && post.visibility === "public")
+      );
+    });
+
+    return res.json(filteredPosts);
   } catch (e) {
     return res
       .status(400)
@@ -132,14 +195,44 @@ router.get("/:id", async (req, res) => {
     let post = await Post.findById(req.params.id)
       .populate({
         path: "user",
-        select: "fullname username",
+        select: "username",
+        populate: {
+          path: "profileId",
+          select: "avatar",
+        },
       })
       .populate({
         path: "comments",
         select: "-__v",
+        populate: [
+          {
+            path: "user",
+            select: "username",
+            populate: {
+              path: "profileId",
+              select: "avatar",
+            },
+          },
+          {
+            path: "replies",
+            select: "-__v",
+            populate: {
+              path: "user",
+              select: "username",
+              populate: {
+                path: "profileId",
+                select: "avatar",
+              },
+            },
+          },
+        ],
       })
       .populate({
         path: "likes",
+      })
+      .populate({
+        path: "tags",
+        select: "name",
       });
     if (!post) return res.json({ msg: "Post Not Found" });
     return res.json(post);
@@ -155,26 +248,29 @@ router.delete("/:id", auth, async (req, res) => {
   try {
     let post = await Post.findById(req.params.id);
     if (!post) return res.json({ msg: "Post Not Found" });
-    if (post.user != req.user._id) {
-      res.status(401).json({ msg: "You do not own this post" });
+    if (post.user.toString() !== req.user._id) {
+      return res.status(401).json({ message: "User not authorized" });
     }
+
     // if (post.attachments) {
     //   const filename = post.attachments;
     //   const filepath = path.join(__dirname, "../public/" + filename);
     //   fs.unlinkSync(filepath);
     // }
-    if (post.attachments && post.attachments.length > 0) {
-      // Loop through each filename in the attachments array
-      post.attachments.forEach((filename) => {
-        // Construct the file path
-        const filepath = path.join(__dirname, "../public/" + filename);
+    // if (post.attachments && post.attachments.length > 0) {
+    //   // Loop through each filename in the attachments array
+    //   post.attachments.forEach((filename) => {
+    //     // Construct the file path
+    //     const filepath = path.join(__dirname, "../public/" + filename);
 
-        // Delete the file
-        fs.unlinkSync(filepath);
-      });
-    }
-    await Post.findByIdAndDelete(req.params.id);
-    await Comment.deleteMany({ post: req.params.id });
+    //     // Delete the file
+    //     fs.unlinkSync(filepath);
+    //   });
+    // }
+    // await Post.findByIdAndDelete(req.params.id);
+    // await Comment.deleteMany({ post: req.params.id });
+    post.isDeleted = true;
+    await post.save();
     return res.json({ msg: "Post succesfully deleted." });
   } catch (e) {
     return res
@@ -185,17 +281,36 @@ router.delete("/:id", auth, async (req, res) => {
 
 router.put("/:id", auth, upload.array("attachments", 9), async (req, res) => {
   try {
-    // Find the post by ID
+    // Find the post by ID to check if it exists
     const post = await Post.findById(req.params.id);
     if (!post) {
       return res.status(404).json({ error: "Post not found" });
     }
-    // Update post fields
-    post.title = req.body.title || post.title;
-    post.description = req.body.description || post.description;
-    post.tags = req.body.tags || post.tags;
-    post.visibility = req.body.visibility || post.visibility;
-    post.status = req.body.status || post.status;
+
+    // Prepare the update object
+    let updateData = {
+      title: req.body.title || post.title,
+      description: req.body.description || post.description,
+      visibility: req.body.visibility || post.visibility,
+      status: req.body.status || post.status,
+    };
+
+    // Handle tags
+    const tags = req.body.tags;
+    if (tags && tags.length > 0) {
+      const tagIdArray = await Promise.all(
+        tags.map(async (tagName) => {
+          if (tagName.trim() === "") return null; // Skip empty tag names
+          let tag = await Tags.findOne({ name: tagName });
+          if (!tag) {
+            tag = new Tags({ name: tagName });
+            await tag.save();
+          }
+          return tag._id;
+        })
+      );
+      updateData.tags = tagIdArray.filter((id) => id !== null); // Remove null entries
+    }
 
     // Update attachments if new files were uploaded
     if (req.files && req.files.length > 0) {
@@ -203,19 +318,25 @@ router.put("/:id", auth, upload.array("attachments", 9), async (req, res) => {
       if (post.attachments && post.attachments.length > 0) {
         post.attachments.forEach((filename) => {
           const filepath = path.join(__dirname, "../public/" + filename);
-          fs.unlinkSync(filepath);
+          if (fs.existsSync(filepath)) {
+            fs.unlinkSync(filepath);
+          }
         });
       }
       // Store new attachment filenames
-      post.attachments = req.files.map((file) => file.filename);
+      updateData.attachments = req.files.map((file) => file.filename);
     }
 
-    // Save the updated post
-    await post.save();
+    // Update the post
+    const updatedPost = await Post.findByIdAndUpdate(
+      req.params.id,
+      updateData,
+      { new: true }
+    ).populate("tags", "name"); // Populate tags if needed
 
-    return res.json({ post, msg: "Post updated successfully" });
+    return res.json({ post: updatedPost, msg: "Post updated successfully" });
   } catch (e) {
-    return res.json({
+    return res.status(400).json({
       error: e.message,
       msg: "You're not allowed to do this action",
     });

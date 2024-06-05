@@ -62,13 +62,53 @@ router.get("/:id", auth, async (req, res) => {
         { user1: user, user2: receiver },
         { user1: receiver, user2: user },
       ],
-    }).populate("chats");
+    })
+      .populate({
+        path: "user1",
+        select: "-password -isAdmin",
+        populate: {
+          path: "profileId",
+          select: "avatar",
+        },
+      })
+      .populate({
+        path: "user2",
+        select: "-password -isAdmin",
+        populate: {
+          path: "profileId",
+          select: "avatar",
+        },
+      })
+      .populate("chats");
 
     if (!chatRecord) {
-      return res.status(200).json({ msg: "Start a new message" });
+      const chatRecord = new ChatRecord({
+        user1: user,
+        user2: receiver,
+        chats: [],
+      });
+      await chatRecord.save();
+      const chatRoom = ChatRecord.findById(chatRecord._id)
+        .populate({
+          path: "user1",
+          select: "-password -isAdmin",
+          populate: {
+            path: "profileId",
+            select: "avatar",
+          },
+        })
+        .populate({
+          path: "user2",
+          select: "-password -isAdmin",
+          populate: {
+            path: "profileId",
+            select: "avatar",
+          },
+        });
+      return res.status(200).json(chatRoom, "start a new message");
     }
 
-    return res.status(200).json({ chatRecord });
+    return res.status(200).json(chatRecord);
   } catch (e) {
     console.error(e);
     res.status(500).json({ message: e.message });

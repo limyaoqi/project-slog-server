@@ -5,9 +5,23 @@ const mongoose = require("mongoose");
 require("dotenv").config();
 const { PORT } = process.env;
 // const WebSocket = require("ws");
+const cors = require("cors");
 
 const app = express();
 const server = http.createServer(app);
+
+app.use(express.static("avatar"));
+app.use(express.static("public"));
+
+const crossHandler = cors({
+  origin: "*",
+  methods: "GET,PUT,POST,DELETE",
+  allowedHeaders: ["Content-Type", "x-auth-token"],
+  preflightContinue: true,
+  optionsSuccessStatus: 200,
+});
+
+app.use(crossHandler);
 
 // const io = socketIo(server);
 const io = socketIo(server, {
@@ -61,9 +75,11 @@ app.use("/profile", require("./routes/profile"));
 app.use("/post", require("./routes/posts"));
 app.use("/follow", require("./routes/follows"));
 app.use("/comment", require("./routes/comments"));
+app.use("/chat", require("./routes/chat"));
 app.use("/like", require("./routes/likes"));
 app.use("/friendships", require("./routes/friendships"));
 app.use("/notifications", require("./routes/notification"));
+app.use("/tags", require("./routes/tags"));
 
 // Socket.io connection handling
 io.on("connection", (socket) => {

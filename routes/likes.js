@@ -3,45 +3,86 @@ const router = express.Router();
 const Like = require("../models/Like");
 const Post = require("../models/Post");
 const { auth } = require("../middleware/auth");
+const Reply = require("../models/Reply");
 
 //localhost:8000/likes/postId
 //like and unlike
-router.post("/:id", auth, async (req, res) => {
+router.post("/post/:id", auth, async (req, res) => {
   try {
-    //find the post using the url id
-    let post = await Post.findById(req.params.id);
-    if (!post) return res.json({ msg: "Post not found" });
+    // Find the post using the URL ID
+    const post = await Post.findById(req.params.id);
+    if (!post) return res.status(404).json({ msg: "Post not found" });
 
-    //find from the like schema to ensure whether already like the post or not
-    let like = await Like.findOne({ user: req.user._id, post: req.params.id });
+    // Check if the user has already liked the post
+    const alreadyLikedIndex = post.likes.findIndex(
+      (like) => like.toString() === req.user._id.toString()
+    );
 
-    //if dont have like the post will create a like
-    if (!like) {
-      let liker = await Like.create({
-        post: req.params.id,
-        user: req.user._id,
-      });
-      post.likes.push({ liker: liker.user });
+    if (alreadyLikedIndex === -1) {
+      // If not liked, push the user ID to the likes array
+      post.likes.push(req.user._id);
       await post.save();
-      return res.json({ post, msg: "like a post." });
+      return res.json({ post, msg: "Liked the post." });
     } else {
-      //if already like will change to unlike
-      let post = await Post.findByIdAndUpdate(
-        req.params.id,
-        {
-          $pull: {
-            likes: { liker: { _id: req.user._id, post: req.params.id } },
-          },
-        },
-        { new: true }
-      );
-      await Like.findOneAndDelete({ user: req.user._id, post: req.params.id });
-      return res.json({ post, msg: "unlike a post." });
+      // If already liked, remove the like
+      post.likes.splice(alreadyLikedIndex, 1);
+      await post.save();
+      return res.json({ post, msg: "Unliked the post." });
     }
   } catch (e) {
     return res
       .status(400)
-      .json({ error: e.message, msg: "Cannot get all post" });
+      .json({ error: e.message, msg: "Cannot process the request" });
+  }
+});
+
+router.post("/comment/:id", auth, async (req, res) => {
+  try {
+    const comment = await Comment.findById(req.params.id);
+    if (!comment) return res.status(404).json({ msg: "Comment not found" });
+
+    const alreadyLikedIndex = comment.likes.findIndex(
+      (like) => like.toString() === req.user._id.toString()
+    );
+
+    if (alreadyLikedIndex === -1) {
+      comment.likes.push(req.user._id);
+      await comment.save();
+      return res.json({ comment, msg: "Liked the comment." });
+    } else {
+      comment.likes.splice(alreadyLikedIndex, 1);
+      await comment.save();
+      return res.json({ comment, msg: "Unliked the comment." });
+    }
+  } catch (e) {
+    return res
+      .status(400)
+      .json({ error: e.message, msg: "Cannot process the request" });
+  }
+});
+
+router.post("/reply/:id", auth, async (req, res) => {
+  try {
+    const reply = await Reply.findById(req.params.id);
+    if (!reply) return res.status(404).json({ msg: "Reply not found" });
+
+    const alreadyLikedIndex = reply.likes.findIndex(
+      (like) => like.toString() === req.user._id.toString()
+    );
+
+    if (alreadyLikedIndex === -1) {
+      reply.likes.push(req.user._id);
+      await reply.save();
+      return res.json({ reply, msg: "Liked the reply." });
+    } else {
+      reply.likes.splice(alreadyLikedIndex, 1);
+      await reply.save();
+      return res.json({ reply, msg: "Unliked the reply." });
+    }
+  } catch (e) {
+    return res
+      .status(400)
+      .json({ error: e.message, msg: "Cannot process the request" });
   }
 });
 

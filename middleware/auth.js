@@ -3,22 +3,20 @@ const Profile = require("../models/Profile");
 require("dotenv").config();
 const { SECRET_KEY } = process.env;
 
-const auth = (req, res, next) => {
+const auth = async (req, res, next) => {
   try {
     const token = req.header("x-auth-token");
 
     if (!token) {
       return res.status(401).json({ msg: "Unauthorized" });
     }
-
     const decoded = jwt.verify(token, SECRET_KEY);
     req.user = decoded.data;
+
     next();
   } catch (e) {
-    return res
-      .status(401)
-      .json({ error: e.message, msg: "Unauthorized" })
-      .redirect("/login");
+    return res.status(401).json({ error: e.message, msg: "Unauthorized" });
+    // .redirect("/login");
   }
 };
 

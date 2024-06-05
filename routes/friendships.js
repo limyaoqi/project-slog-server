@@ -4,16 +4,41 @@ const Friendship = require("../models/Friendship");
 const { auth } = require("../middleware/auth");
 const path = require("path"); //allows you to change directors
 const Notification = require("../models/Notification");
+const User = require("../models/User");
 
-router.get("/friend", auth, async (req, res) => {
+router.get("/", auth, async (req, res) => {
   try {
-    const user = req.user._id;
-    const Friends = await Friendship.find({
-      $or: [{ user1: user }, { user2: user }],
+    const userId = req.user._id;
+    const friends = await Friendship.find({
+      $or: [{ user1: userId }, { user2: userId }],
       status: "accepted",
+    })
+      .populate({
+        path: "user1",
+        select: "-password -isAdmin",
+        populate: {
+          path: "profileId",
+          select: "avatar",
+        },
+      })
+      .populate({
+        path: "user2",
+        select: "-password -isAdmin",
+        populate: {
+          path: "profileId",
+          select: "avatar",
+        },
+      });
+
+    friends.sort((a, b) => {
+      const aIsOnline =
+        a.user1._id.toString() === userId ? a.user2.isOnline : a.user1.isOnline;
+      const bIsOnline =
+        b.user1._id.toString() === userId ? b.user2.isOnline : b.user1.isOnline;
+      return bIsOnline - aIsOnline;
     });
 
-    return res.json({ Friends });
+    return res.json(friends);
   } catch (error) {
     return res.status(500).json({ msg: "Server Error" });
   }
@@ -24,13 +49,37 @@ router.get("/request", auth, async (req, res) => {
   try {
     const user = req.user._id;
     const request = await Friendship.find({
-      $or: [{ user1: user }, { user2: user }],
+      user2: user,
       status: "pending",
+    }).populate({
+      path: "user1",
+      select: "username",
+      populate: {
+        path: "profileId",
+        select: "avatar",
+      },
     });
 
-    return res.json({ request });
+    return res.json(request);
   } catch (error) {
     return res.status(500).json({ error: error.message });
+  }
+});
+
+router.get("/:id", auth, async (req, res) => {
+  try {
+    const user = req.user._id;
+    const findUser = req.params.id;
+    const Friends = await Friendship.findOne({
+      $or: [
+        { user1: user, user2: findUser },
+        { user1: findUser, user2: user },
+      ],
+    });
+
+    return res.json(Friends);
+  } catch (error) {
+    return res.status(500).json({ msg: error.message });
   }
 });
 
@@ -47,6 +96,14 @@ router.post("/request/:id", auth, async (req, res) => {
         .json({ msg: "Cannot send friend request to yourself" });
     }
 
+    const userFound = await User.findById(receiver);
+
+    if (!userFound) {
+      return res.status(400).json({
+        msg: "Cannot find the user",
+      });
+    }
+
     //try to find if you already is friend with him/you already sending request
     const alreadyIsFriend = await Friendship.findOne({
       $or: [
@@ -54,14 +111,16 @@ router.post("/request/:id", auth, async (req, res) => {
         { user1: receiver, user2: sender },
       ],
     });
-    if (alreadyIsFriend.status === "pending") {
-      return res.status(400).json({
-        msg: "Friend request already sent",
-      });
-    } else if (alreadyIsFriend.status === "accepted") {
-      return res.status(400).json({
-        msg: "You and he are already friends",
-      });
+    if (alreadyIsFriend) {
+      if (alreadyIsFriend.status === "pending") {
+        return res.status(400).json({
+          msg: "Friend request already sent",
+        });
+      } else if (alreadyIsFriend.status === "accepted") {
+        return res.status(400).json({
+          msg: "You and he are already friends",
+        });
+      }
     }
 
     //send a request
@@ -74,8 +133,9 @@ router.post("/request/:id", auth, async (req, res) => {
 
     const notification = new Notification({
       type: "friend_request",
-      content: `${req.user.fullname} sent you a friend request.`,
+      content: `${req.user.username} sent you a friend request.`,
       recipient: receiver,
+      createdBy: sender,
     });
     await notification.save();
     return res.json({
@@ -94,21 +154,29 @@ router.post("/accept/:id", auth, async (req, res) => {
     const friendshipId = req.params.id;
 
     //find the friendship
-    const friendshipRequest = Friendship.findOne({
-      _id: friendshipId,
-      receiver: userId,
-    });
+    const friendshipRequest = await Friendship.findById(friendshipId);
 
     if (!friendshipRequest) {
       return res.status(404).json({ msg: "Friendship not found" });
     }
-    friendshipRequest.status = "accepted";
-    const friendship = await friendshipRequest.save();
+
+    if (friendshipRequest.user2.toString() !== userId.toString()) {
+      return res.status(403).json({
+        msg: "You are not authorized to accept this friendship request",
+      });
+    }
+
+    const friendship = await Friendship.findByIdAndUpdate(
+      friendshipId,
+      { status: "accepted" },
+      { new: true }
+    );
 
     const notification = new Notification({
       type: "friend_request_accept",
-      content: `${req.user.fullname} accepted your friend request.`,
+      content: `${req.user.username} accepted your friend request.`,
       recipient: friendshipRequest.user1,
+      createdBy: userId,
     });
     await notification.save();
 

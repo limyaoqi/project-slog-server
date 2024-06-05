@@ -23,17 +23,21 @@ router.post("/:id", auth, async (req, res) => {
       post: req.params.id,
       user: req.user._id,
     });
-    post.comments.push({ comment: comment._id });
+    await comment.save();
+
+    post.comments.push(comment._id);
     await post.save();
 
     if (commentOwner.toString() !== postOwner.toString()) {
       // Send notification to the post owner
-      await Notification.create({
+      const notice = new Notification({
         type: "comment",
         content: `User ${req.user.username} commented on your post.`,
         recipient: postOwner,
+        createdBy: commentOwner,
         postId: post._id,
       });
+      await notice.save();
     }
 
     return res.json({ comment, msg: "Comment added successfully" });
@@ -96,7 +100,7 @@ router.put("/:id", auth, async (req, res) => {
 });
 
 //id is comment id
-router.post("/:postId/:id/reply", auth, async (req, res) => {
+router.post("/:postId/:id", auth, async (req, res) => {
   try {
     const post = await Post.findById(req.params.postId);
     if (!post) {
@@ -109,7 +113,7 @@ router.post("/:postId/:id/reply", auth, async (req, res) => {
     }
 
     // The user replying to the comment
-      let replyOwner = req.user._id;
+    let replyOwner = req.user._id;
     let commentOwner = comment.user;
 
     let reply = await Reply.create({
@@ -128,10 +132,20 @@ router.post("/:postId/:id/reply", auth, async (req, res) => {
         content: `User ${req.user.username} replied your comment.`,
         recipient: commentOwner,
         postId: post._id,
-      });
+      }).save();
     }
 
-    return res.json({ reply, msg: "Reply added successfully" });
+    comment = await Comment.findById(req.params.id)
+      .populate("user", "username")
+      .populate({
+        path: "replies",
+        populate: {
+          path: "user",
+          select: "username",
+        },
+      });
+
+    return res.json({ comment, msg: "Reply added successfully" });
   } catch (e) {
     return res.status(400).json({
       error: e.message,

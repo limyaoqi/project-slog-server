@@ -13,20 +13,14 @@ const PostSchema = new mongoose.Schema(
     },
     comments: [
       {
-        comment: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: "Comment",
-        },
-        _id: false,
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Comment",
       },
     ],
     likes: [
       {
-        liker: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: "Like",
-        },
-        _id: false,
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
       },
     ],
     tags: [{ type: mongoose.Schema.Types.ObjectId, ref: "Tags" }],
@@ -41,25 +35,14 @@ const PostSchema = new mongoose.Schema(
       enum: ["draft", "published", "archived"],
       default: "draft",
     },
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true, // Automatically add createdAt and updatedAt timestamps
   }
 );
-
-// Indexes for frequently queried or sorted fields
-PostSchema.index({ user: 1 }); // Index for user field
-PostSchema.index({ createdAt: -1 }); // Index for createdAt field
-
-PostSchema.pre("remove", { document: true }, async function (next) {
-  try {
-    // Remove all associated comments when a post is removed
-    await this.model("Comment").deleteMany({ _id: { $in: this.comments } });
-    next(); // Call next to continue with the remove operation
-  } catch (error) {
-    console.error("Error removing associated comments:", error);
-    next(error); // Pass error to continue with the remove operation and handle it elsewhere
-  }
-});
 
 module.exports = mongoose.model("Post", PostSchema);
