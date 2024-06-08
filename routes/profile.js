@@ -30,7 +30,7 @@ router.get("/", auth, async (req, res) => {
         select: "username",
       })
       .populate("interests");
-    if (!userProfile) return res.json({ msg: "Profile Not Found" });
+    if (!userProfile) return res.json({ message: "Profile Not Found" });
     const userPosts = await Post.find({ user: userId })
       .populate({
         path: "user",
@@ -77,7 +77,7 @@ router.get("/", auth, async (req, res) => {
   } catch (e) {
     return res.status(400).json({
       error: e.message,
-      msg: "Something went wrong, Please try again later.",
+      message: "Something went wrong, Please try again later.",
     });
   }
 });
@@ -92,7 +92,7 @@ router.get("/:id", auth, async (req, res) => {
         select: "username",
       })
       .populate("interests");
-    if (!userProfile) return res.json({ msg: "Profile Not Found" });
+    if (!userProfile) return res.json({ message: "Profile Not Found" });
     const userPosts = await Post.find({ user })
       .populate({
         path: "user",
@@ -140,7 +140,7 @@ router.get("/:id", auth, async (req, res) => {
   } catch (e) {
     return res.status(400).json({
       error: e.message,
-      msg: "Something went wrong, Please try again later.",
+      message: "Something went wrong, Please try again later.",
     });
   }
 });
@@ -154,9 +154,9 @@ router.post(
   async (req, res) => {
     try {
       const user = req.user._id;
-      const bio = req.body.bio;
-      const location = req.body.location;
-      const interests = req.body.interests;
+      const bio = req.body.bio || "";
+      const location = req.body.location || "";
+      const interests = req.body.interests || [];
       const avatar = req.file ? req.file.filename : "default_avatar.jpg";
 
       let tagIdArray = [];
@@ -206,7 +206,7 @@ router.post(
         profileId: profile._id,
       });
 
-      return res.json({ profile, msg: "Profile added successfully" });
+      return res.json({ profile, message: "Profile added successfully" });
     } catch (error) {
       console.error(error);
       return res.status(500).json({ error: error.message });
@@ -221,15 +221,15 @@ router.put("/:id", auth, upload.single("avatar"), async (req, res) => {
 
     let userProfile = await Profile.findById(userProfileId);
     if (!userProfile) {
-      return res.status(404).json({ msg: "Profile Not Found" });
+      return res.status(404).json({ message: "Profile Not Found" });
     }
     if (userProfile.user.toString() !== userId.toString()) {
-      return res.status(403).json({ msg: "Unauthorized" });
+      return res.status(403).json({ message: "Unauthorized" });
     }
 
-    const bio = req.body.bio;
-    const location = req.body.location;
-    let interests = req.body.interests;
+    const bio = req.body.bio || "";
+    const location = req.body.location || "";
+    let interests = req.body.interests || [];
 
     let tagIdArray = [];
 
@@ -293,7 +293,7 @@ router.put("/:id", auth, upload.single("avatar"), async (req, res) => {
   } catch (e) {
     return res.status(400).json({
       error: e.message,
-      msg: "Something went wrong, Please try again later.",
+      message: "Something went wrong, Please try again later.",
     });
   }
 });

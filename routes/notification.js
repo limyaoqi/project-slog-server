@@ -31,7 +31,7 @@ router.put("/", auth, async (req, res) => {
     const user = req.user._id;
 
     // Update all notifications for the user to read
-     await Notification.updateMany(
+    await Notification.updateMany(
       { recipient: user, read: false },
       { $set: { read: true } }
     );
@@ -43,7 +43,7 @@ router.put("/", auth, async (req, res) => {
   } catch (e) {
     return res.json({
       error: e.message,
-      msg: "You're not allowed to do this action",
+      message: "You're not allowed to do this action",
     });
   }
 });

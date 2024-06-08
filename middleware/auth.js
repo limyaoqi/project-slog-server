@@ -8,14 +8,14 @@ const auth = async (req, res, next) => {
     const token = req.header("x-auth-token");
 
     if (!token) {
-      return res.status(401).json({ msg: "Unauthorized" });
+      return res.status(401).json({ message: "Unauthorized" });
     }
     const decoded = jwt.verify(token, SECRET_KEY);
     req.user = decoded.data;
 
     next();
   } catch (e) {
-    return res.status(401).json({ error: e.message, msg: "Unauthorized" });
+    return res.status(401).json({ error: e.message, message: "Unauthorized" });
     // .redirect("/login");
   }
 };
@@ -28,7 +28,7 @@ const existingProfile = async (req, res, next) => {
     if (profile) {
       return res
         .status(400)
-        .json({ msg: "Profile already exists for this user" });
+        .json({ message: "Profile already exists for this user" });
     } else {
       next();
     }

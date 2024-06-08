@@ -9,7 +9,7 @@ router.get("/followers", auth, async (req, res) => {
       "followers",
       "username"
     );
-    if (!follow) return res.json({ msg: "You dont have follower" });
+    if (!follow) return res.json({ message: "You dont have follower" });
     return res.json(follow.followers);
   } catch (e) {
     return res.status(400).json({ error: e.message });
@@ -22,7 +22,7 @@ router.get("/followings", auth, async (req, res) => {
       "followers",
       "username"
     );
-    if (!follow) return res.json({ msg: "You dont have follower" });
+    if (!follow) return res.json({ message: "You dont have follower" });
     return res.json(follow.followings);
   } catch (e) {
     return res.status(400).json({ error: e.message });
@@ -64,7 +64,7 @@ router.post("/:id", auth, async (req, res) => {
       await userToFollowRecord.save();
       return res
         .status(200)
-        .json({ currentUserFollowRecord, msg: "Unfollowed successfully" });
+        .json({ currentUserFollowRecord, message: "Unfollowed successfully" });
     } else {
       currentUserFollowRecord.followings.push(userToFollowId);
       userToFollowRecord.followers.push(currentUserId);
@@ -72,12 +72,15 @@ router.post("/:id", auth, async (req, res) => {
       await userToFollowRecord.save();
       return res
         .status(200)
-        .json({ currentUserFollowRecord, msg: "Followed successfully" });
+        .json({ currentUserFollowRecord, message: "Followed successfully" });
     }
   } catch (e) {
     return res
       .status(400)
-      .json({ error: e.message, msg: "Cannot get all follower and following" });
+      .json({
+        error: e.message,
+        message: "Cannot get all follower and following",
+      });
   }
 });
 module.exports = router;

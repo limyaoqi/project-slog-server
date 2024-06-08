@@ -34,13 +34,13 @@ router.post("/login", async (req, res) => {
     //find is that had the user the same with the details?
     let userFound = await User.findOne({ email });
     if (!userFound) {
-      return res.status(400).json({ msg: "Invalid Credentials" });
+      return res.status(400).json({ message: "Invalid Credentials" });
     }
 
     //compare the userpassword and formpassword is same or not
     let isMatch = bcrypt.compareSync(password, userFound.password);
     if (!isMatch) {
-      return res.status(400).json({ msg: "Invalid Credentials" });
+      return res.status(400).json({ message: "Invalid Credentials" });
     }
 
     userFound = userFound.toObject();
@@ -58,15 +58,13 @@ router.post("/login", async (req, res) => {
       {
         new: true,
       }
-    ).populate({
-      path: "profileId",
-      select: "avatar",
-    });
+    );
+    console.log(onlineUser);
 
     return res.json({
       token,
       user: onlineUser,
-      msg: "Logged in successfully",
+      message: "Logged in successfully",
     });
   } catch (e) {
     return res.status(400).json({ error: e.message });
@@ -83,36 +81,38 @@ router.post("/register", async (req, res) => {
     if (userFound)
       return res
         .status(400)
-        .json({ msg: "Username has already been registered" });
+        .json({ message: "Username has already been registered" });
 
     //find whether the email already used or not
     const emailFound = await User.findOne({ email });
     if (emailFound)
-      return res.status(400).json({ msg: "Email has already been registered" });
+      return res
+        .status(400)
+        .json({ message: "Email has already been registered" });
 
     //check the register details
 
     if (username.length < 8)
       return res.status(400).json({
-        msg: "Username should be atleast 8 characters",
+        message: "Username should be atleast 8 characters",
       });
     if (email.length < 8)
       return res.status(400).json({
-        msg: "Email should be atleast 8 characters",
+        message: "Email should be atleast 8 characters",
       });
     if (password.length < 8)
       return res.status(400).json({
-        msg: "Password should be atleast 8 characters",
+        message: "Password should be atleast 8 characters",
       });
 
     //create new user
-    let user = new User(req.body);
+    let user = new User({...req.body});
     let salt = bcrypt.genSaltSync(10);
     let hash = bcrypt.hashSync(password, salt);
     user.password = hash;
     await user.save();
 
-    return res.json({ msg: "Registered Successfully", user });
+    return res.json({ message: "Registered Successfully", user });
   } catch (e) {
     return res.status(400).json({ error: e.message });
   }
@@ -151,7 +151,7 @@ router.post("/logout", auth, async (req, res) => {
       }
     );
 
-    return res.json({ user, msg: "Logged out successfully" });
+    return res.json({ user, message: "Logged out successfully" });
   } catch (e) {
     return res.status(400).json({ error: e.message });
   }

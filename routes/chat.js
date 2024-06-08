@@ -20,7 +20,7 @@ const io = require("socket.io");
 //     });
 
 //     if (!allFriend || allFriend.length === 0) {
-//       return res.status(400).json({ msg: "No friends found" });
+//       return res.status(400).json({ message: "No friends found" });
 //     }
 
 //     let chatRecord = await ChatRecord.find({
@@ -55,7 +55,9 @@ router.get("/:id", auth, async (req, res) => {
     });
 
     if (!isFriend) {
-      return res.status(400).json({ msg: "You are not receiver's friends" });
+      return res
+        .status(400)
+        .json({ message: "You are not receiver's friends" });
     }
 
     const chatRecord = await ChatRecord.findOne({
@@ -66,7 +68,7 @@ router.get("/:id", auth, async (req, res) => {
     })
       .populate({
         path: "user1",
-        select: "-password -isAdmin",
+        select: "-password",
         populate: {
           path: "profileId",
           select: "avatar",
@@ -74,7 +76,7 @@ router.get("/:id", auth, async (req, res) => {
       })
       .populate({
         path: "user2",
-        select: "-password -isAdmin",
+        select: "-password",
         populate: {
           path: "profileId",
           select: "avatar",
@@ -113,7 +115,7 @@ router.get("/:id", auth, async (req, res) => {
       const chatRoom = await ChatRecord.findById(chatRecord._id)
         .populate({
           path: "user1",
-          select: "-password -isAdmin",
+          select: "-password",
           populate: {
             path: "profileId",
             select: "avatar",
@@ -121,7 +123,7 @@ router.get("/:id", auth, async (req, res) => {
         })
         .populate({
           path: "user2",
-          select: "-password -isAdmin",
+          select: "-password",
           populate: {
             path: "profileId",
             select: "avatar",
@@ -167,7 +169,9 @@ router.post("/:id", auth, async (req, res) => {
     });
 
     if (!isFriend) {
-      return res.status(400).json({ msg: "You are not receiver's friends" });
+      return res
+        .status(400)
+        .json({ message: "You are not receiver's friends" });
     }
 
     let chatRecord = await ChatRecord.findOne({

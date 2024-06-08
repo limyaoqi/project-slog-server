@@ -11,7 +11,7 @@ router.post("/:id", auth, async (req, res) => {
   try {
     let post = await Post.findById(req.params.id);
     if (!post) {
-      return res.json({ msg: "Post not found" });
+      return res.json({ message: "Post not found" });
     }
 
     //find the comment user is same with the post owner
@@ -40,31 +40,43 @@ router.post("/:id", auth, async (req, res) => {
       await notice.save();
     }
 
-    return res.json({ comment, msg: "Comment added successfully" });
+    return res.json({ comment, message: "Comment added successfully" });
   } catch (e) {
     return res.status(400).json({
       error: e.message,
-      msg: "Cannot add a comment, Please try again later.",
+      message: "Cannot add a comment, Please try again later.",
     });
   }
 });
 
 router.delete("/:id", auth, async (req, res) => {
   try {
-    const comment = await Comment.findById(req.params.id);
-    if (!comment) return res.json({ msg: "Comment not found" });
-    if (comment.user.toString() !== req.user._id.toString())
-      return res.status(401).json({ msg: "You do not own this comment" });
+    const comment = await Comment.findById(req.params.id).populate({
+      path: "post",
+      select: "user",
+    });
+    if (!comment) return res.json({ message: "Comment not found" });
+
+    if (
+      comment.post.user.toString() !== req.user._id.toString() &&
+      comment.user.toString() !== req.user._id.toString() &&
+      req.user.role !== "superAdmin" &&
+      req.user.role !== "admin"
+    )
+      return res
+        .status(401)
+        .json({ message: "You are not allow to do this action" });
+
     await Comment.findByIdAndUpdate(
       req.params.id,
       { isDeleted: true },
       { new: true }
     );
-    return res.json({ msg: "Comment deleted successfully" });
+    return res.json({ message: "Comment deleted successfully" });
   } catch (e) {
     return res
       .status(400)
-      .json({ error: e.message, msg: "Something went wrong" });
+      .json({ error: e.message, message: "Something went wrong" });
   }
 });
 
@@ -72,7 +84,7 @@ router.delete("/:id", auth, async (req, res) => {
 router.put("/:id", auth, async (req, res) => {
   try {
     let comment = await Comment.findById(req.params.id);
-    if (!comment) return res.json({ msg: "Comment Not Found" });
+    if (!comment) return res.json({ message: "Comment Not Found" });
     if (comment.user._id == req.user._id) {
       let updateComment = await Comment.findByIdAndUpdate(
         req.params.id,
@@ -84,17 +96,17 @@ router.put("/:id", auth, async (req, res) => {
 
       return res.json({
         comment: updateComment,
-        msg: "Comment succesfully updated.",
+        message: "Comment succesfully updated.",
       });
       // comment.content = content || comment.content;
       // await comment.save();
 
-      // return res.json({ comment, msg: "Comment updated successfully" });
+      // return res.json({ comment, message: "Comment updated successfully" });
     }
   } catch (e) {
     return res.json({
       error: e.message,
-      msg: "You're not allowed to do this action",
+      message: "You're not allowed to do this action",
     });
   }
 });
@@ -104,12 +116,12 @@ router.post("/:postId/:id", auth, async (req, res) => {
   try {
     const post = await Post.findById(req.params.postId);
     if (!post) {
-      return res.status(404).json({ msg: "Post not found" });
+      return res.status(404).json({ message: "Post not found" });
     }
 
     let comment = await Comment.findById(req.params.id);
     if (!comment) {
-      return res.json({ msg: "Comment not found" });
+      return res.json({ message: "Comment not found" });
     }
 
     // The user replying to the comment
@@ -145,11 +157,11 @@ router.post("/:postId/:id", auth, async (req, res) => {
         },
       });
 
-    return res.json({ comment, msg: "Reply added successfully" });
+    return res.json({ comment, message: "Reply added successfully" });
   } catch (e) {
     return res.status(400).json({
       error: e.message,
-      msg: "Cannot add a comment, Please try again later.",
+      message: "Cannot add a comment, Please try again later.",
     });
   }
 });

@@ -16,35 +16,36 @@ router.get("/", auth, async (req, res) => {
 
     // Find friends
     let friends = await Friendship.find({
-      $or: [
-        { user1: userId },
-        { user2: userId },
-      ],
+      $or: [{ user1: userId }, { user2: userId }],
       status: "accepted",
     })
-    .populate({
-      path: "user1",
-      select: "-password -isAdmin",
-      populate: {
-        path: "profileId",
-        select: "avatar",
-      },
-    })
-    .populate({
-      path: "user2",
-      select: "-password -isAdmin",
-      populate: {
-        path: "profileId",
-        select: "avatar",
-      },
-    });
+      .populate({
+        path: "user1",
+        select: "-password",
+        populate: {
+          path: "profileId",
+          select: "avatar",
+        },
+      })
+      .populate({
+        path: "user2",
+        select: "-password",
+        populate: {
+          path: "profileId",
+          select: "avatar",
+        },
+      });
 
     // Filter friends based on the search query
     if (search) {
-      friends = friends.filter(friend => {
-        const user1Match = searchRegex.test(friend.user1.username);
-        const user2Match = searchRegex.test(friend.user2.username);
-        return user1Match || user2Match;
+      friends = friends.filter((friend) => {
+        if (friend.user1._id.toString() === req.user._id) {
+          const user2Match = searchRegex.test(friend.user2.username);
+          return user2Match;
+        } else {
+          const user1Match = searchRegex.test(friend.user1.username);
+          return user1Match;
+        }
       });
     }
 
@@ -59,14 +60,13 @@ router.get("/", auth, async (req, res) => {
 
     return res.json(friends);
   } catch (error) {
-    return res.status(500).json({ msg: "Server Error" });
+    return res.status(500).json({ message: "Server Error" });
   }
 });
 
 //get all the request
 router.get("/request", auth, async (req, res) => {
   try {
-
     const user = req.user._id;
     const request = await Friendship.find({
       user2: user,
@@ -99,7 +99,7 @@ router.get("/:id", auth, async (req, res) => {
 
     return res.json(Friends);
   } catch (error) {
-    return res.status(500).json({ msg: error.message });
+    return res.status(500).json({ message: error.message });
   }
 });
 
@@ -113,14 +113,14 @@ router.post("/request/:id", auth, async (req, res) => {
     if (sender.toString() === receiver.toString()) {
       return res
         .status(400)
-        .json({ msg: "Cannot send friend request to yourself" });
+        .json({ message: "Cannot send friend request to yourself" });
     }
 
     const userFound = await User.findById(receiver);
 
     if (!userFound) {
       return res.status(400).json({
-        msg: "Cannot find the user",
+        message: "Cannot find the user",
       });
     }
 
@@ -134,11 +134,11 @@ router.post("/request/:id", auth, async (req, res) => {
     if (alreadyIsFriend) {
       if (alreadyIsFriend.status === "pending") {
         return res.status(400).json({
-          msg: "Friend request already sent",
+          message: "Friend request already sent",
         });
       } else if (alreadyIsFriend.status === "accepted") {
         return res.status(400).json({
-          msg: "You and he are already friends",
+          message: "You and he are already friends",
         });
       }
     }
@@ -160,7 +160,7 @@ router.post("/request/:id", auth, async (req, res) => {
     await notification.save();
     return res.json({
       friendshipRequest,
-      msg: "Friend request sent successfully",
+      message: "Friend request sent successfully",
     });
   } catch (error) {
     return res.status(500).json({ error: error.message });
@@ -177,12 +177,12 @@ router.post("/accept/:id", auth, async (req, res) => {
     const friendshipRequest = await Friendship.findById(friendshipId);
 
     if (!friendshipRequest) {
-      return res.status(404).json({ msg: "Friendship not found" });
+      return res.status(404).json({ message: "Friendship not found" });
     }
 
     if (friendshipRequest.user2.toString() !== userId.toString()) {
       return res.status(403).json({
-        msg: "You are not authorized to accept this friendship request",
+        message: "You are not authorized to accept this friendship request",
       });
     }
 
@@ -202,7 +202,7 @@ router.post("/accept/:id", auth, async (req, res) => {
 
     return res.json({
       friendship,
-      msg: "Friend request accepted successfully",
+      message: "Friend request accepted successfully",
     });
   } catch (error) {
     console.error(error);
@@ -222,13 +222,13 @@ router.post("/reject/:id", auth, async (req, res) => {
       receiver: userId,
     });
     if (!friendshipRequest) {
-      return res.status(404).json({ msg: "Friendship not found" });
+      return res.status(404).json({ message: "Friendship not found" });
     }
 
     // Delete friendship
     await Friendship.findByIdAndDelete(friendshipId);
 
-    return res.json({ msg: "Friend request rejected successfully" });
+    return res.json({ message: "Friend request rejected successfully" });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ error: error.message });
@@ -248,13 +248,13 @@ router.post("/unfriend/:friendshipId", auth, async (req, res) => {
       status: "accepted",
     });
     if (!friendship) {
-      return res.status(404).json({ msg: "Friendship not found" });
+      return res.status(404).json({ message: "Friendship not found" });
     }
 
     // Delete friendship
     await Friendship.findByIdAndDelete(friendshipId);
 
-    return res.json({ msg: "Unfriended successfully" });
+    return res.json({ message: "Unfriended successfully" });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ error: error.message });
