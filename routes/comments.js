@@ -53,14 +53,14 @@ router.delete("/:id", auth, async (req, res) => {
   try {
     const comment = await Comment.findById(req.params.id);
     if (!comment) return res.json({ msg: "Comment not found" });
-    if (comment.user != req.user._id)
+    if (comment.user.toString() !== req.user._id.toString())
       return res.status(401).json({ msg: "You do not own this comment" });
-    let deletedComment = await Comment.findByIdAndUpdate(
+    await Comment.findByIdAndUpdate(
       req.params.id,
-      { deleted: true },
+      { isDeleted: true },
       { new: true }
     );
-    return res.json({ deletedComment, msg: "Comment deleted successfully" });
+    return res.json({ msg: "Comment deleted successfully" });
   } catch (e) {
     return res
       .status(400)

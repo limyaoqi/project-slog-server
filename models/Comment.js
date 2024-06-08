@@ -9,6 +9,10 @@ const CommentSchema = new mongoose.Schema(
     //the user who reply the comment
     replies: [{ type: mongoose.Schema.Types.ObjectId, ref: "Reply" }],
     //the user who reply the user that reply this comment
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );

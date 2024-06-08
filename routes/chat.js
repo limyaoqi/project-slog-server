@@ -8,6 +8,7 @@ const { auth } = require("../middleware/auth");
 const Chat = require("../models/Chat");
 const ChatRecord = require("../models/ChatRecord");
 const Friendship = require("../models/Friendship");
+const io = require("socket.io");
 
 // router.get("/", auth, async (req, res) => {
 //   try {
@@ -79,7 +80,28 @@ router.get("/:id", auth, async (req, res) => {
           select: "avatar",
         },
       })
-      .populate("chats");
+      .populate({
+        path: "chats",
+        select: "-deletedBy",
+        populate: [
+          {
+            path: "sender",
+            select: "profileId",
+            populate: {
+              path: "profileId",
+              select: "avatar",
+            },
+          },
+          {
+            path: "receiver",
+            select: "profileId",
+            populate: {
+              path: "profileId",
+              select: "avatar",
+            },
+          },
+        ],
+      });
 
     if (!chatRecord) {
       const chatRecord = new ChatRecord({
@@ -88,7 +110,7 @@ router.get("/:id", auth, async (req, res) => {
         chats: [],
       });
       await chatRecord.save();
-      const chatRoom = ChatRecord.findById(chatRecord._id)
+      const chatRoom = await ChatRecord.findById(chatRecord._id)
         .populate({
           path: "user1",
           select: "-password -isAdmin",
@@ -104,7 +126,22 @@ router.get("/:id", auth, async (req, res) => {
             path: "profileId",
             select: "avatar",
           },
+        })
+        .populate({
+          path: "chats",
+          select: "-deletedBy",
+          populate: [
+            {
+              path: "sender",
+              select: "profileId",
+            },
+            {
+              path: "receiver",
+              select: "profileId",
+            },
+          ],
         });
+
       return res.status(200).json(chatRoom, "start a new message");
     }
 

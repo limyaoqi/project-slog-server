@@ -1,9 +1,9 @@
 const express = require("express");
 const router = express.Router();
-const Like = require("../models/Like");
 const Post = require("../models/Post");
 const { auth } = require("../middleware/auth");
 const Reply = require("../models/Reply");
+const Comment = require("../models/Comment");
 
 //localhost:8000/likes/postId
 //like and unlike
@@ -40,6 +40,8 @@ router.post("/comment/:id", auth, async (req, res) => {
   try {
     const comment = await Comment.findById(req.params.id);
     if (!comment) return res.status(404).json({ msg: "Comment not found" });
+
+    console.log(comment);
 
     const alreadyLikedIndex = comment.likes.findIndex(
       (like) => like.toString() === req.user._id.toString()

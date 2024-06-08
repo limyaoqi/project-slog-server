@@ -4,8 +4,8 @@ const socketIo = require("socket.io");
 const mongoose = require("mongoose");
 require("dotenv").config();
 const { PORT } = process.env;
-// const WebSocket = require("ws");
 const cors = require("cors");
+// const WebSocket = require("ws");
 
 const app = express();
 const server = http.createServer(app);
@@ -23,13 +23,13 @@ const crossHandler = cors({
 
 app.use(crossHandler);
 
-// const io = socketIo(server);
-const io = socketIo(server, {
-  cors: {
-    origin: "*",
-    methods: ["GET", "POST"],
-  },
-});
+// // const io = socketIo(server);
+// const io = socketIo(server, {
+//   cors: {
+//     origin: "*",
+//     methods: ["GET", "POST"],
+//   },
+// });
 // const wss = new WebSocket.Server({ server: server });
 
 // wss.on("connection", function connection(ws) {
@@ -81,31 +81,33 @@ app.use("/friendships", require("./routes/friendships"));
 app.use("/notifications", require("./routes/notification"));
 app.use("/tags", require("./routes/tags"));
 
-// Socket.io connection handling
-io.on("connection", (socket) => {
-  console.log("A user connected");
+// io.on("connection", (socket) => {
+//   console.log("A user connected");
 
-  // Send a welcome message to the connected client
-  socket.emit("message", "Welcome new client");
+//   // Listen for the 'join' event which carries user information
+//   socket.on("join", (user) => {
+//     const { username, _id } = user;
+//     console.log(`User connected: username: ${username}, id: ${_id}`);
+//     socket.join(_id);
 
-  // Listen for incoming messages from the client
-  socket.on("message", (message) => {
-    console.log("Received message:", message);
+//     // Listen for incoming messages from the client
+//     socket.on("sendMessage", (message) => {
+//       console.log("Received message:", message);
 
-    // Broadcast the message to all connected clients, including the sender
-    // io.emit("message", message);
+//       // Emit the message to the receiver's room
+//       io.to(message.receiverId).emit("message", message);
+//       io.to(message.senderId).emit("message", message);
+//     });
 
-    // Broadcast the message to all connected clients, expect the sender
-    socket.broadcast.emit("message", message);
-  });
-
-  // Handle client disconnection
-  socket.on("disconnect", () => {
-    console.log("A user disconnected");
-  });
-});
+//     // Handle client disconnection
+//     socket.on("disconnect", () => {
+//       console.log(`User disconnected: username: ${username}, id: ${_id}`);
+//     });
+//   });
+// });
 
 // Start Express server
+
 server.listen(PORT, () => {
   console.log(`App is running on Port : ${PORT}`);
 });

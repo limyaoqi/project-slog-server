@@ -9,27 +9,46 @@ const User = require("../models/User");
 router.get("/", auth, async (req, res) => {
   try {
     const userId = req.user._id;
-    const friends = await Friendship.find({
-      $or: [{ user1: userId }, { user2: userId }],
+    const search = req.query.search || ""; // Default to an empty string if search is not provided
+
+    // Build the search regex
+    const searchRegex = new RegExp(search, "i"); // 'i' makes it case-insensitive
+
+    // Find friends
+    let friends = await Friendship.find({
+      $or: [
+        { user1: userId },
+        { user2: userId },
+      ],
       status: "accepted",
     })
-      .populate({
-        path: "user1",
-        select: "-password -isAdmin",
-        populate: {
-          path: "profileId",
-          select: "avatar",
-        },
-      })
-      .populate({
-        path: "user2",
-        select: "-password -isAdmin",
-        populate: {
-          path: "profileId",
-          select: "avatar",
-        },
-      });
+    .populate({
+      path: "user1",
+      select: "-password -isAdmin",
+      populate: {
+        path: "profileId",
+        select: "avatar",
+      },
+    })
+    .populate({
+      path: "user2",
+      select: "-password -isAdmin",
+      populate: {
+        path: "profileId",
+        select: "avatar",
+      },
+    });
 
+    // Filter friends based on the search query
+    if (search) {
+      friends = friends.filter(friend => {
+        const user1Match = searchRegex.test(friend.user1.username);
+        const user2Match = searchRegex.test(friend.user2.username);
+        return user1Match || user2Match;
+      });
+    }
+
+    // Sort friends based on online status
     friends.sort((a, b) => {
       const aIsOnline =
         a.user1._id.toString() === userId ? a.user2.isOnline : a.user1.isOnline;
@@ -47,6 +66,7 @@ router.get("/", auth, async (req, res) => {
 //get all the request
 router.get("/request", auth, async (req, res) => {
   try {
+
     const user = req.user._id;
     const request = await Friendship.find({
       user2: user,

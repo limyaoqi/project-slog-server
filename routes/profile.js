@@ -157,7 +157,7 @@ router.post(
       const bio = req.body.bio;
       const location = req.body.location;
       const interests = req.body.interests;
-      const avatar = req.file.filename;
+      const avatar = req.file ? req.file.filename : "default_avatar.jpg";
 
       let tagIdArray = [];
 

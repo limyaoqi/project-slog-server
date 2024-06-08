@@ -38,7 +38,28 @@ const existingProfile = async (req, res, next) => {
   }
 };
 
+const isAdmin = (req, res, next) => {
+  if (
+    req.user &&
+    (req.user.role === "admin" || req.user.role === "superAdmin")
+  ) {
+    next();
+  } else {
+    res.status(403).json({ message: "Access denied. Admins only." });
+  }
+};
+
+const isSuperAdmin = (req, res, next) => {
+  if (req.user && req.user.role === "superAdmin") {
+    next();
+  } else {
+    res.status(403).json({ message: "Access denied. SuperAdmins only." });
+  }
+};
+
 module.exports = {
   auth,
   existingProfile,
+  isAdmin,
+  isSuperAdmin,
 };

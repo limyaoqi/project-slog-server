@@ -117,8 +117,6 @@ router.post("/", auth, upload.array("attachments", 9), async (req, res) => {
 
 router.get("/", auth, async (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-
     const keys = Object.keys(req.query);
     let filter = {};
     keys.forEach((key) => {
@@ -173,8 +171,13 @@ router.get("/", auth, async (req, res) => {
 
     const filteredDeletedPosts = posts.filter((post) => !post.isDeleted);
 
+    const filteredCommentDeletedPosts = filteredDeletedPosts.map((post) => {
+      post.comments = post.comments.filter((comment) => !comment.isDeleted);
+      return post;
+    }); // console.log(filteredDeletedPosts);
+
     // post.user._id === req.user._id return all the post that post.user._id !== req.user._id && status ==="published" visibility ==="public" and post.user._id === req.user._id
-    const filteredPosts = filteredDeletedPosts.filter((post) => {
+    const filteredPosts = filteredCommentDeletedPosts.filter((post) => {
       return (
         post.user._id.toString() === req.user._id.toString() ||
         (post.status === "published" && post.visibility === "public")
@@ -228,13 +231,15 @@ router.get("/:id", async (req, res) => {
         ],
       })
       .populate({
-        path: "likes",
-      })
-      .populate({
         path: "tags",
         select: "name",
       });
     if (!post) return res.json({ msg: "Post Not Found" });
+
+    post.comments = post.comments.filter((comment) => !comment.isDeleted);
+
+    // if (!filteredPosts) return res.json({ msg: "Post Not Found" });
+
     return res.json(post);
   } catch (e) {
     return res.status(400).json({
@@ -296,20 +301,31 @@ router.put("/:id", auth, upload.array("attachments", 9), async (req, res) => {
     };
 
     // Handle tags
+
+    let tagIdArray = [];
     const tags = req.body.tags;
-    if (tags && tags.length > 0) {
-      const tagIdArray = await Promise.all(
-        tags.map(async (tagName) => {
-          if (tagName.trim() === "") return null; // Skip empty tag names
-          let tag = await Tags.findOne({ name: tagName });
-          if (!tag) {
-            tag = new Tags({ name: tagName });
-            await tag.save();
+
+    if (tags) {
+      // Convert tags to array if it's a string
+      const tagsArray = Array.isArray(tags) ? tags : [tags];
+
+      // Iterate over the tags array
+      for (let i = 0; i < tagsArray.length; i++) {
+        if (tagsArray[i].length > 0) {
+          // Check for non-empty tag name
+          const existingTag = await Tags.findOne({ name: tagsArray[i] });
+          if (existingTag) {
+            tagIdArray.push(existingTag._id);
+          } else {
+            const newTag = new Tags({ name: tagsArray[i] });
+            const savedTag = await newTag.save();
+            tagIdArray.push(savedTag._id);
           }
-          return tag._id;
-        })
-      );
-      updateData.tags = tagIdArray.filter((id) => id !== null); // Remove null entries
+        }
+      }
+
+      // Add tags to the update data
+      updateData.tags = tagIdArray;
     }
 
     // Update attachments if new files were uploaded

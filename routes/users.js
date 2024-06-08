@@ -5,7 +5,10 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 require("dotenv").config();
 const { SECRET_KEY } = process.env;
-const { auth } = require("../middleware/auth");
+const { auth, isAdmin, isSuperAdmin } = require("../middleware/auth");
+const Post = require("../models/Post");
+const Comment = require("../models/Comment");
+const Reply = require("../models/Reply");
 
 /*
 example account
@@ -22,9 +25,6 @@ user acc
   "email": "johndoe2@example.com"
 }
 */
-router.get("/", async (req, res) => {
-  res.send("hello world");
-});
 
 router.post("/login", async (req, res) => {
   try {
@@ -118,6 +118,26 @@ router.post("/register", async (req, res) => {
   }
 });
 
+router.get("/", auth, async (req, res) => {
+  try {
+    const search = req.query.search || "";
+
+    const users = await User.find();
+
+    // Filter users based on the search query
+    if (search) {
+      const searchRegex = new RegExp(search, "i"); // 'i' makes it case-insensitive
+      users = users.filter((user) => searchRegex.test(user.username));
+    }
+    res.json(users);
+  } catch (error) {
+    res.status(500).json({
+      message: "Something went wrong, please try again later.",
+      error: error.message,
+    });
+  }
+});
+
 router.post("/logout", auth, async (req, res) => {
   try {
     const user = await User.findByIdAndUpdate(
@@ -136,5 +156,64 @@ router.post("/logout", auth, async (req, res) => {
     return res.status(400).json({ error: e.message });
   }
 });
+
+router.put("/block-user/:userId", auth, isAdmin, async (req, res) => {
+  const userId = req.params.userId;
+
+  try {
+    // Block the user
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { isBlocked: true },
+      { new: true }
+    );
+    if (!user) return res.status(404).json({ message: "User not found." });
+
+    // Update all posts by the user
+    await Post.updateMany({ user: userId }, { isDeleted: true });
+
+    // Update all comments by the user
+    await Comment.updateMany({ user: userId }, { isDeleted: true });
+
+    // Update all replies by the user
+    await Reply.updateMany({ user: userId }, { isDeleted: true });
+
+    res.json({
+      message:
+        "User blocked and all posts, comments, and replies marked as deleted.",
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Something went wrong, please try again later.",
+      error: error.message,
+    });
+  }
+});
+
+router.put(
+  "/promote-to-admin/:userId",
+  auth,
+  isSuperAdmin,
+  async (req, res) => {
+    const { userId } = req.params;
+
+    try {
+      // Promote the user to admin
+      const user = await User.findByIdAndUpdate(
+        userId,
+        { role: "admin" },
+        { new: true }
+      );
+      if (!user) return res.status(404).json({ message: "User not found." });
+
+      res.json({ message: "User promoted to admin.", user });
+    } catch (error) {
+      res.status(500).json({
+        message: "Something went wrong, please try again later.",
+        error: error.message,
+      });
+    }
+  }
+);
 
 module.exports = router;

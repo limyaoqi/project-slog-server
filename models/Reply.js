@@ -6,6 +6,10 @@ const ReplySchema = new mongoose.Schema(
     user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     likes: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     parent_comment: { type: mongoose.Schema.Types.ObjectId, ref: "Comment" },
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );
