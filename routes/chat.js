@@ -156,6 +156,13 @@ router.get("/:id", auth, async (req, res) => {
 
 router.post("/:id", auth, async (req, res) => {
   try {
+    if (req.user.isBlocked) {
+      return res.status(400).json({
+        message:
+          "Your account is currently blocked. Please contact support for further assistance.",
+      });
+    }
+
     const user = req.user._id;
     const receiver = req.params.id;
     const content = req.body.content;

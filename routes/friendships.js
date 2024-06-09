@@ -40,7 +40,7 @@ router.get("/", auth, async (req, res) => {
     if (search) {
       friends = friends.filter((friend) => {
         if (friend.user1._id.toString() === req.user._id) {
-          const user2Match = searchRegex.test(friend.user2.username);
+          const user2Match = searchRegex.test(friend.user2.username); 
           return user2Match;
         } else {
           const user1Match = searchRegex.test(friend.user1.username);

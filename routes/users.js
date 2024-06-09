@@ -58,9 +58,10 @@ router.post("/login", async (req, res) => {
       {
         new: true,
       }
-    );
-    console.log(onlineUser);
-
+    ).populate({
+      path: "profileId",
+      select: "avatar",
+    });
     return res.json({
       token,
       user: onlineUser,
@@ -92,13 +93,21 @@ router.post("/register", async (req, res) => {
 
     //check the register details
 
-    if (username.length < 8)
+    if (username.length < 8 || username.length > 20)
       return res.status(400).json({
-        message: "Username should be atleast 8 characters",
+        message: "Username should be between 8 and 20 characters",
       });
+
     if (email.length < 8)
       return res.status(400).json({
         message: "Email should be atleast 8 characters",
+      });
+
+    const emailLocalPart = email.split("@")[0];
+    if (emailLocalPart.length >= 15)
+      return res.status(400).json({
+        message:
+          "The part of the email before '@' should be less than 15 characters",
       });
     if (password.length < 8)
       return res.status(400).json({
@@ -106,7 +115,7 @@ router.post("/register", async (req, res) => {
       });
 
     //create new user
-    let user = new User({...req.body});
+    let user = new User({ ...req.body });
     let salt = bcrypt.genSaltSync(10);
     let hash = bcrypt.hashSync(password, salt);
     user.password = hash;
@@ -121,15 +130,45 @@ router.post("/register", async (req, res) => {
 router.get("/", auth, async (req, res) => {
   try {
     const search = req.query.search || "";
+    const currentUserId = req.user._id;
 
-    const users = await User.find();
+    let users = await User.find({ _id: { $ne: currentUserId } }).populate({
+      path: "profileId",
+      select: "avatar",
+    });
 
     // Filter users based on the search query
     if (search) {
       const searchRegex = new RegExp(search, "i"); // 'i' makes it case-insensitive
       users = users.filter((user) => searchRegex.test(user.username));
     }
-    res.json(users);
+    return res.json(users);
+  } catch (error) {
+    res.status(500).json({
+      message: "Something went wrong, please try again later.",
+      error: error.message,
+    });
+  }
+});
+
+router.get("/myUser", auth, async (req, res) => {
+  try {
+    const userId = req.user._id; // Assuming auth middleware sets req.user
+
+    // Find the user by ID, populate the profileId field, and exclude the password field
+    const user = await User.findById(userId)
+      .populate({
+        path: "profileId",
+        select: "avatar",
+      })
+      .select("-password");
+
+    // If user is not found, send an error response
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    return res.json(user);
   } catch (error) {
     res.status(500).json({
       message: "Something went wrong, please try again later.",
@@ -159,28 +198,92 @@ router.post("/logout", auth, async (req, res) => {
 
 router.put("/block-user/:userId", auth, isAdmin, async (req, res) => {
   const userId = req.params.userId;
+  const { password } = req.body;
 
   try {
-    // Block the user
-    const user = await User.findByIdAndUpdate(
-      userId,
-      { isBlocked: true },
-      { new: true }
-    );
+    if (req.user.isBlocked) {
+      return res.status(400).json({
+        message:
+          "Your account is currently blocked. Please contact support for further assistance.",
+      });
+    }
+    // Retrieve the user from the database
+    const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: "User not found." });
 
-    // Update all posts by the user
-    await Post.updateMany({ user: userId }, { isDeleted: true });
+    const currentUser = await User.findById(req.user._id);
+    if (!currentUser)
+      return res.status(404).json({ message: "User not found." });
 
-    // Update all comments by the user
-    await Comment.updateMany({ user: userId }, { isDeleted: true });
+    // Verify the provided password
+    const isMatch = bcrypt.compareSync(password, currentUser.password);
+    if (!isMatch) {
+      return res
+        .status(400)
+        .json({ message: "Invalid credentials. Cannot block user." });
+    }
 
-    // Update all replies by the user
-    await Reply.updateMany({ user: userId }, { isDeleted: true });
+    if (user.role === "admin" && currentUser.role === "admin") {
+      return res
+        .status(403)
+        .json({ message: "Admins cannot block other admins." });
+    }
 
-    res.json({
+    // Block the user
+    await User.findByIdAndUpdate(userId, { isBlocked: true }, { new: true });
+
+    // Update all posts, comments, and replies by the user
+    await Promise.all([
+      Post.updateMany({ user: userId }, { isDeleted: true }),
+      Comment.updateMany({ user: userId }, { isDeleted: true }),
+      Reply.updateMany({ user: userId }, { isDeleted: true }),
+    ]);
+
+    return res.json({
       message:
-        "User blocked and all posts, comments, and replies marked as deleted.",
+        "User blocked successfully and all related content marked as deleted.",
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Something went wrong, please try again later.",
+      error: error.message,
+    });
+  }
+});
+
+router.put("/unblock-user/:userId", auth, isAdmin, async (req, res) => {
+  const userId = req.params.userId;
+  const { password } = req.body;
+
+  try {
+    // Retrieve the user from the database
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: "User not found." });
+
+    const currentUser = await User.findById(req.user._id);
+    if (!currentUser)
+      return res.status(404).json({ message: "User not found." });
+
+    // Verify the provided password
+    const isMatch = bcrypt.compareSync(password, currentUser.password);
+    if (!isMatch) {
+      return res
+        .status(400)
+        .json({ message: "Invalid credentials. Cannot block user." });
+    }
+
+    // Block the user
+    await User.findByIdAndUpdate(userId, { isBlocked: false }, { new: true });
+
+    // Update all posts, comments, and replies by the user
+    // await Promise.all([
+    //   Post.updateMany({ user: userId }, { isDeleted: true }),
+    //   Comment.updateMany({ user: userId }, { isDeleted: true }),
+    //   Reply.updateMany({ user: userId }, { isDeleted: true }),
+    // ]);
+
+    return res.json({
+      message: "User unblocked successfully.",
     });
   } catch (error) {
     res.status(500).json({
@@ -195,18 +298,37 @@ router.put(
   auth,
   isSuperAdmin,
   async (req, res) => {
-    const { userId } = req.params;
-
     try {
+      const { userId } = req.params;
+      const { password, role } = req.body;
+
+      if (!password || !role) {
+        return res
+          .status(400)
+          .json({ message: "Password and role are required." });
+      }
+
+      const userToPromote = await User.findById(userId);
+      if (!userToPromote)
+        return res.status(404).json({ message: "User not found." });
+
+      const currentUser = await User.findById(req.user._id);
+      const isMatch = bcrypt.compareSync(password, currentUser.password);
+      if (!isMatch) {
+        return res
+          .status(400)
+          .json({ message: "Invalid credentials. Cannot promote user." });
+      }
+
       // Promote the user to admin
       const user = await User.findByIdAndUpdate(
         userId,
-        { role: "admin" },
+        { role },
         { new: true }
       );
       if (!user) return res.status(404).json({ message: "User not found." });
 
-      res.json({ message: "User promoted to admin.", user });
+      return res.json({ message: "User promoted to admin.", user });
     } catch (error) {
       res.status(500).json({
         message: "Something went wrong, please try again later.",

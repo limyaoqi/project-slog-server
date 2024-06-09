@@ -14,7 +14,7 @@ const storage = multer.diskStorage({
     cb(null, "./public");
   }, //where to save the images
   filename: (req, file, cb) => {
-    cb(null, Date.now() + "-" + path.extname(file.originalname));
+    cb(null, Date.now() + "-" + file.originalname);
   }, //format the filename before storing it
 });
 
@@ -38,6 +38,7 @@ router.get("/", auth, async (req, res) => {
     // };
 
     const posts = await Post.find(filter)
+      .sort({ createdAt: -1 })
       .populate({
         path: "user",
         select: "username",
@@ -162,6 +163,12 @@ router.post("/", auth, upload.array("attachments", 9), async (req, res) => {
     // if (!req.files || req.files.length === 0) {
     //   return res.status(400).json({ error: "No files were uploaded" });
     // }
+    if (req.user.isBlocked) {
+      return res.status(400).json({
+        message:
+          "Your account is currently blocked. Please contact support for further assistance.",
+      });
+    }
 
     //title must have but less than 100 word
     if (req.body.title.length > 100) {
@@ -252,6 +259,13 @@ router.post("/", auth, upload.array("attachments", 9), async (req, res) => {
 
 router.delete("/:id", auth, async (req, res) => {
   try {
+    if (req.user.isBlocked) {
+      return res.status(400).json({
+        message:
+          "Your account is currently blocked. Please contact support for further assistance.",
+      });
+    }
+
     let post = await Post.findById(req.params.id);
     if (!post) return res.json({ message: "Post Not Found" });
 
@@ -295,6 +309,12 @@ router.delete("/:id", auth, async (req, res) => {
 
 router.put("/:id", auth, upload.array("attachments", 9), async (req, res) => {
   try {
+    if (req.user.isBlocked) {
+      return res.status(400).json({
+        message:
+          "Your account is currently blocked. Please contact support for further assistance.",
+      });
+    }
     // Find the post by ID to check if it exists
     const post = await Post.findById(req.params.id);
     if (!post) {

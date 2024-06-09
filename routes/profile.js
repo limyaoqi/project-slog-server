@@ -24,14 +24,17 @@ const upload = multer({ storage });
 router.get("/", auth, async (req, res) => {
   try {
     const userId = req.user._id;
+
     const userProfile = await Profile.findOne({ user: userId })
       .populate({
         path: "user",
         select: "username",
       })
       .populate("interests");
+
     if (!userProfile) return res.json({ message: "Profile Not Found" });
-    const userPosts = await Post.find({ user: userId })
+
+    const posts = await Post.find({ user: userId })
       .populate({
         path: "user",
         select: "username",
@@ -73,7 +76,22 @@ router.get("/", auth, async (req, res) => {
         path: "tags",
         select: "name",
       });
-    return res.json({ profile: userProfile, posts: userPosts });
+
+    const filteredDeletedPosts = posts.filter((post) => !post.isDeleted);
+
+    const filteredCommentDeletedPosts = filteredDeletedPosts.map((post) => {
+      post.comments = post.comments.filter((comment) => !comment.isDeleted);
+      return post;
+    });
+
+    const filteredPosts = filteredCommentDeletedPosts.filter((post) => {
+      return (
+        post.user._id.toString() === req.user._id.toString() ||
+        (post.status === "published" && post.visibility === "public")
+      );
+    });
+
+    return res.json({ profile: userProfile, posts: filteredPosts });
   } catch (e) {
     return res.status(400).json({
       error: e.message,
@@ -92,8 +110,10 @@ router.get("/:id", auth, async (req, res) => {
         select: "username",
       })
       .populate("interests");
+
     if (!userProfile) return res.json({ message: "Profile Not Found" });
-    const userPosts = await Post.find({ user })
+
+    const posts = await Post.find({ user })
       .populate({
         path: "user",
         select: "username",
@@ -136,7 +156,21 @@ router.get("/:id", auth, async (req, res) => {
         select: "name",
       });
 
-    return res.json({ profile: userProfile, posts: userPosts });
+    const filteredDeletedPosts = posts.filter((post) => !post.isDeleted);
+
+    const filteredCommentDeletedPosts = filteredDeletedPosts.map((post) => {
+      post.comments = post.comments.filter((comment) => !comment.isDeleted);
+      return post;
+    });
+
+    const filteredPosts = filteredCommentDeletedPosts.filter((post) => {
+      return (
+        post.user._id.toString() === req.user._id.toString() ||
+        (post.status === "published" && post.visibility === "public")
+      );
+    });
+
+    return res.json({ profile: userProfile, posts: filteredPosts });
   } catch (e) {
     return res.status(400).json({
       error: e.message,

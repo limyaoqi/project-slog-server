@@ -9,6 +9,13 @@ const Reply = require("../models/Reply");
 //localhost:2000/comments/postId
 router.post("/:id", auth, async (req, res) => {
   try {
+    if (req.user.isBlocked) {
+      return res.status(400).json({
+        message:
+          "Your account is currently blocked. Please contact support for further assistance.",
+      });
+    }
+
     let post = await Post.findById(req.params.id);
     if (!post) {
       return res.json({ message: "Post not found" });
@@ -51,6 +58,13 @@ router.post("/:id", auth, async (req, res) => {
 
 router.delete("/:id", auth, async (req, res) => {
   try {
+    if (req.user.isBlocked) {
+      return res.status(400).json({
+        message:
+          "Your account is currently blocked. Please contact support for further assistance.",
+      });
+    }
+
     const comment = await Comment.findById(req.params.id).populate({
       path: "post",
       select: "user",
@@ -114,6 +128,14 @@ router.put("/:id", auth, async (req, res) => {
 //id is comment id
 router.post("/:postId/:id", auth, async (req, res) => {
   try {
+
+    if (req.user.isBlocked) {
+      return res.status(400).json({
+        message:
+          "Your account is currently blocked. Please contact support for further assistance.",
+      });
+    }
+
     const post = await Post.findById(req.params.postId);
     if (!post) {
       return res.status(404).json({ message: "Post not found" });
@@ -139,12 +161,13 @@ router.post("/:postId/:id", auth, async (req, res) => {
 
     if (replyOwner.toString() !== commentOwner.toString()) {
       // Send notification to the post owner
-      await Notification.create({
+      const newNotice = new Notification({
         type: "reply",
         content: `User ${req.user.username} replied your comment.`,
         recipient: commentOwner,
         postId: post._id,
-      }).save();
+      });
+      await newNotice.save();
     }
 
     comment = await Comment.findById(req.params.id)
@@ -162,6 +185,60 @@ router.post("/:postId/:id", auth, async (req, res) => {
     return res.status(400).json({
       error: e.message,
       message: "Cannot add a comment, Please try again later.",
+    });
+  }
+});
+
+router.delete("/:postId/:commentId/:replyId", auth, async (req, res) => {
+  try {
+    if (req.user.isBlocked) {
+      return res.status(400).json({
+        message:
+          "Your account is currently blocked. Please contact support for further assistance.",
+      });
+    }
+    
+    const { postId, commentId, replyId } = req.params;
+
+    const post = await Post.findById(postId);
+    if (!post) {
+      return res.status(404).json({ message: "Post not found" });
+    }
+
+    const comment = await Comment.findById(commentId);
+    if (!comment) {
+      return res.status(404).json({ message: "Comment not found" });
+    }
+
+    const reply = await Reply.findById(replyId);
+    if (!reply) {
+      return res.status(404).json({ message: "Reply not found" });
+    }
+
+    // Check if the user is the owner of the reply or an admin
+    if (
+      reply.user.toString() !== req.user._id.toString() &&
+      post.user.toString() !== req.user._id.toString() &&
+      req.user.role !== "admin" &&
+      req.user.role !== "superAdmin"
+    ) {
+      return res
+        .status(403)
+        .json({ message: "You are not authorized to delete this reply" });
+    }
+
+    // Remove the reply ID from the comment's replies array
+    comment.replies = comment.replies.filter((r) => r.toString() !== replyId);
+    await comment.save();
+
+    // Delete the reply
+    await Reply.findByIdAndDelete(replyId);
+
+    return res.json({ message: "Reply deleted successfully" });
+  } catch (e) {
+    return res.status(400).json({
+      error: e.message,
+      message: "Cannot delete the reply, Please try again later.",
     });
   }
 });
